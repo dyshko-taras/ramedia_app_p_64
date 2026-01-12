@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'app.dart';
+import 'app_bootstrap.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -26,9 +27,11 @@ class MainApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return App(
-      locale: DevicePreview.locale(context),
-      builder: DevicePreview.appBuilder,
+    return AppBootstrap(
+      child: App(
+        locale: DevicePreview.locale(context),
+        builder: DevicePreview.appBuilder,
+      ),
     );
   }
 }

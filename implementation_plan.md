@@ -31,53 +31,54 @@
 
 ## Phase 2 — Navigation & Shell
 
-- [ ] Реалізувати `MainShellPage` з Bottom Navigation (Home/Credit/Settings) згідно `info/prd.md` + правила з `info/guidelines.md` (IndexedStack).
-- [ ] Додати `MainShellCubit` + `MainShellState` (керування активною вкладкою та навігаційними подіями).
-- [ ] Підключити routes так, щоб `/home`, `/credit`, `/settings` відкривали `MainShellPage(initialIndex: ...)`.
-- [ ] Додати “non-tab” routes (Splash, Onboarding step 1/2, Participants Balance, No Internet) як окремі сторінки.
+- [x] Реалізувати `MainShellPage` з Bottom Navigation (Home/Credit/Settings) згідно `info/prd.md` + правила з `info/guidelines.md` (IndexedStack).
+- [x] Додати `MainShellCubit` + `MainShellState` (керування активною вкладкою та навігаційними подіями).
+- [x] Підключити routes так, щоб `/home`, `/credit`, `/settings` відкривали `MainShellPage(initialIndex: ...)`.
+- [x] Додати “non-tab” routes (Splash, Onboarding step 1/2, Participants Balance, No Internet) як окремі сторінки.
 - [ ] Впровадити “back button rules” (ігнорувати Android system back там, де потрібно за `info/technical_spec.md`).
 
 ## Phase 3 — Assets & UI Building Blocks
 
-- [ ] Описати всі SVG іконки через `AppIcons` (без редагування `assets/`).
-- [ ] Описати всі зображення/фони через `AppImages` (без редагування `assets/`).
-- [ ] Додати базові reusable widgets (мінімально необхідні):
-  - [ ] Primary/Secondary button стилі під theme
-  - [ ] Common dialogs/bottom sheets (confirm, form sheets)
-  - [ ] Common text fields + валідації (за правилами “Input & Validation”)
+- [x] Описати всі SVG іконки через `AppIcons` (без редагування `assets/`).
+- [x] Описати всі зображення/фони через `AppImages` (без редагування `assets/`).
+- [x] Додати базові reusable widgets (мінімально необхідні):
+  - [x] Primary/Secondary button стилі під theme
+  - [x] Common dialogs/bottom sheets (confirm, form sheets)
+  - [x] Common text fields + валідації (за правилами “Input & Validation”)
 
 ## Phase 4 — Splash / Preloader
 
-- [ ] `SplashPage`: background image + Lottie loader (loop).
-- [ ] `SplashCubit` + `SplashState` (ініціалізація та рішення куди навігувати).
+- [x] `SplashPage`: background image + Lottie loader (loop, з fallback якщо анімації ще немає в assets).
+- [x] `SplashCubit` + `SplashState` (мінімальна ініціалізація + рішення куди навігувати, з мінімальною тривалістю splash).
 - [ ] Мінімальна ініціалізація локальних даних (без мережі) + редірект:
-  - [ ] новий користувач → Onboarding Step 1
-  - [ ] існуючий → `/home` (через shell)
-- [ ] Дотриматися UX вимог (не мигати при resume, мін. час показу — за потреби).
+  - [x] новий користувач → Onboarding Step 1
+  - [x] існуючий → `/home` (через shell)
+- [x] Дотриматися UX вимог (мін. час показу).
 
-## Phase 5 — Onboarding Flow
+## Phase 5 — Local Data (моделі + сховище)
+
+- [x] Описати доменні моделі (мінімальні) для:
+  - [x] User/Profile
+  - [x] Participant
+  - [x] Transactions (income/expenses)
+  - [x] Currency
+- [x] Визначити контракт локального збереження (що/де зберігаємо): lightweight flags → `SharedPreferences`, структурні дані → DB (Hive).
+- [x] Підготувати “Clear Data” (очищення prefs + Hive boxes) як окрему дію, яку можна викликати з Settings.
+
+## Phase 6 — Database & Repositories
+
+- [x] Додати базу даних для транзакцій/учасників/налаштувань та описати схему:
+  - [x] DB: **Hive** (просте локальне сховище, швидко для MVP; Drift/SQLite не використовуємо)
+- [x] Додати DAO/Store рівень для читання/запису (абстракція над конкретною DB).
+- [x] Додати repositories як єдину точку доступу до даних для UI/Cubit (Cubit не ходить напряму в DB/SharedPreferences).
+- [x] Узгодити стратегічно: що живе в DB, а що в SharedPreferences (напр. lightweight flags/onboarding).
+
+## Phase 7 — Onboarding Flow
 
 - [ ] `OnboardingStep1Page` + `OnboardingStep1Cubit` + `OnboardingStep1State` (екран + логіка permission для push як в tech spec).
 - [ ] `OnboardingStep2Page` + `OnboardingStep2Cubit` + `OnboardingStep2State` (“add your name” / додавання учасників (≤10), вибір валюти, модалки/діалоги (delete/clear info)).
-- [ ] Збереження онбордингу в локальне сховище.
+- [ ] Збереження онбордингу через repositories/storage (без прямого доступу UI/Cubit до DB).
 - [ ] Навігація далі в основний flow.
-
-## Phase 6 — Local Data (моделі + сховище)
-
-- [ ] Описати доменні моделі (мінімальні) для:
-  - [ ] User/Profile
-  - [ ] Participant
-  - [ ] Transactions (income/expenses)
-  - [ ] Currency
-- [ ] Реалізувати локальне збереження (на старті — `SharedPreferences`, якщо вимоги не потребують складнішого).
-- [ ] Реалізувати “Clear Data” (повне очищення) як окрему дію, яку можна викликати з Settings.
-
-## Phase 7 — Database & Repositories
-
-- [ ] Додати базу даних (за потреби: Drift/SQLite) для транзакцій/учасників/налаштувань та описати схему.
-- [ ] Додати DAO/Store рівень для читання/запису.
-- [ ] Додати repositories як єдину точку доступу до даних для UI/Cubit (Cubit не ходить напряму в DB/SharedPreferences).
-- [ ] Узгодити стратегічно: що живе в DB, а що в SharedPreferences (напр. lightweight flags/onboarding).
 
 ## Phase 8 — Home (Family Bank)
 
