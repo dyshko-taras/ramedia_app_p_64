@@ -19,9 +19,16 @@ class SettingsRepository {
   Future<void> setSelectedCurrencyCode(String code) =>
       _prefs.setSelectedCurrencyCode(code);
 
+  static const _keyPushPermissionRequested = 'push_permission_requested';
+
+  bool getPushPermissionRequested() =>
+      _prefs.getBool(_keyPushPermissionRequested) ?? false;
+
+  Future<void> setPushPermissionRequested(bool value) =>
+      _prefs.setBool(_keyPushPermissionRequested, value);
+
   Future<void> clearAllData() async {
     await _prefs.clearAll();
     await _hive.clearAll();
   }
 }
-

@@ -75,10 +75,10 @@
 
 ## Phase 7 — Onboarding Flow
 
-- [ ] `OnboardingStep1Page` + `OnboardingStep1Cubit` + `OnboardingStep1State` (екран + логіка permission для push як в tech spec).
-- [ ] `OnboardingStep2Page` + `OnboardingStep2Cubit` + `OnboardingStep2State` (“add your name” / додавання учасників (≤10), вибір валюти, модалки/діалоги (delete/clear info)).
-- [ ] Збереження онбордингу через repositories/storage (без прямого доступу UI/Cubit до DB).
-- [ ] Навігація далі в основний flow.
+- [x] `OnboardingStep1Page` + `OnboardingStep1Cubit` + `OnboardingStep1State` (екран + логіка permission для push як в tech spec).
+- [x] `OnboardingStep2Page` + `OnboardingStep2Cubit` + `OnboardingStep2State` (“add your name” / додавання учасників (≤10), вибір валюти, модалки/діалоги (delete/clear info)).
+- [x] Збереження онбордингу через repositories/storage (без прямого доступу UI/Cubit до DB).
+- [x] Навігація далі в основний flow.
 
 ## Phase 8 — Home (Family Bank)
 

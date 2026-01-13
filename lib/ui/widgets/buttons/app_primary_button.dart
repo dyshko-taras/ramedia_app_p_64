@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../constants/app_sizes.dart';
+import '../../../constants/app_radius.dart';
 
 class AppPrimaryButton extends StatelessWidget {
   const AppPrimaryButton({
@@ -8,11 +9,17 @@ class AppPrimaryButton extends StatelessWidget {
     required this.onPressed,
     super.key,
     this.isLoading = false,
+    this.backgroundColor,
+    this.foregroundColor,
+    this.borderRadius = AppRadius.xl,
   });
 
   final String label;
   final VoidCallback? onPressed;
   final bool isLoading;
+  final Color? backgroundColor;
+  final Color? foregroundColor;
+  final BorderRadius borderRadius;
 
   @override
   Widget build(BuildContext context) {
@@ -21,6 +28,13 @@ class AppPrimaryButton extends StatelessWidget {
       width: double.infinity,
       child: FilledButton(
         onPressed: isLoading ? null : onPressed,
+        style: (backgroundColor == null && foregroundColor == null)
+            ? null
+            : FilledButton.styleFrom(
+                backgroundColor: backgroundColor,
+                foregroundColor: foregroundColor,
+                shape: RoundedRectangleBorder(borderRadius: borderRadius),
+              ),
         child: isLoading
             ? const SizedBox(
                 height: AppSizes.loadingIndicatorSize,
@@ -34,4 +48,3 @@ class AppPrimaryButton extends StatelessWidget {
     );
   }
 }
-

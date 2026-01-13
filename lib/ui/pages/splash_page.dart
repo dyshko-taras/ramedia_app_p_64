@@ -94,8 +94,7 @@ class _Loader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Align(
-      alignment: const Alignment(0, -0.25),
+    return Center(
       child: SizedBox(
         height: AppSizes.splashLoaderSize,
         width: AppSizes.splashLoaderSize,
