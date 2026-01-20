@@ -6,12 +6,12 @@ import 'hive_keys.dart';
 class ProfileDao {
   ProfileDao(this._box);
 
-  final Box<Map<String, Object?>> _box;
+  final Box<Map<dynamic, dynamic>> _box;
 
   UserProfile? getProfile() {
     final map = _box.get(HiveKeys.userProfile);
     if (map == null) return null;
-    return UserProfile.fromMap(map);
+    return UserProfile.fromMap(map.cast<Object?, Object?>());
   }
 
   Future<void> upsertProfile(UserProfile profile) =>
@@ -19,4 +19,3 @@ class ProfileDao {
 
   Future<void> deleteProfile() => _box.delete(HiveKeys.userProfile);
 }
-

@@ -1,5 +1,7 @@
+import 'package:code/constants/app_spacing.dart';
 import 'package:flutter/material.dart';
 
+import '../../constants/app_radius.dart';
 import 'app_colors.dart';
 import 'app_fonts.dart';
 
@@ -48,6 +50,24 @@ abstract final class AppTextStyles {
     height: 1.33,
     letterSpacing: 0.5,
   );
+
+  static const input = TextStyle(
+    fontFamily: AppFonts.montserrat,
+    fontWeight: FontWeight.w500,
+    fontSize: 16,
+    height: 1.25,
+    letterSpacing: 0.1,
+    color: AppColors.textSecondary,
+  );
+
+  static const inputHint = TextStyle(
+    fontFamily: AppFonts.montserrat,
+    fontWeight: FontWeight.w500,
+    fontSize: 16,
+    height: 1.25,
+    letterSpacing: 0.1,
+    color: AppColors.textGray,
+  );
 }
 
 final ThemeData appTheme = ThemeData(
@@ -72,5 +92,25 @@ final ThemeData appTheme = ThemeData(
     bodyMedium: AppTextStyles.body3,
     bodySmall: AppTextStyles.body4,
   ),
+  inputDecorationTheme: const InputDecorationTheme(
+    filled: true,
+    fillColor: AppColors.layerPrimary,
+    hintStyle: AppTextStyles.inputHint,
+    contentPadding: EdgeInsets.symmetric(
+      horizontal: AppSpacing.lg,
+      vertical: AppSpacing.md,
+    ),
+    border: const OutlineInputBorder(
+      borderRadius: AppRadius.xl,
+      borderSide: BorderSide.none,
+    ),
+    enabledBorder: const OutlineInputBorder(
+      borderRadius: AppRadius.xl,
+      borderSide: BorderSide.none,
+    ),
+    focusedBorder: const OutlineInputBorder(
+      borderRadius: AppRadius.xl,
+      borderSide: BorderSide(color: AppColors.accentPrimary, width: 2),
+    ),
+  ),
 );
-

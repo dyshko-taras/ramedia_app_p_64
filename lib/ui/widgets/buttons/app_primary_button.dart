@@ -12,6 +12,8 @@ class AppPrimaryButton extends StatelessWidget {
     this.backgroundColor,
     this.foregroundColor,
     this.borderRadius = AppRadius.xl,
+    this.height,
+    this.width,
   });
 
   final String label;
@@ -20,12 +22,14 @@ class AppPrimaryButton extends StatelessWidget {
   final Color? backgroundColor;
   final Color? foregroundColor;
   final BorderRadius borderRadius;
+  final double? height;
+  final double? width;
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: AppSizes.buttonHeight,
-      width: double.infinity,
+      height: height ?? AppSizes.buttonHeight,
+      width: width ?? double.infinity,
       child: FilledButton(
         onPressed: isLoading ? null : onPressed,
         style: (backgroundColor == null && foregroundColor == null)

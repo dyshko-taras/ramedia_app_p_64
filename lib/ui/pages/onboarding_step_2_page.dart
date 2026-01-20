@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -5,7 +6,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../constants/app_icons.dart';
-import '../../constants/app_radius.dart';
 import '../../constants/app_sizes.dart';
 import '../../constants/app_spacing.dart';
 import '../../constants/app_strings.dart';
@@ -20,6 +20,8 @@ import '../theme/app_theme.dart';
 import '../widgets/buttons/app_primary_button.dart';
 import '../widgets/buttons/app_secondary_button.dart';
 import '../widgets/dialogs/app_confirm_dialog.dart';
+import '../widgets/fields/app_dropdown.dart';
+import '../widgets/sheets/add_participant_sheet.dart';
 import '../widgets/sheets/add_your_name_sheet.dart';
 import 'onboarding_step_2_cubit.dart';
 import 'onboarding_step_2_state.dart';
@@ -85,6 +87,7 @@ class _OnboardingStep2PageState extends State<OnboardingStep2Page> {
         child: const PopScope(
           canPop: false,
           child: Scaffold(
+            backgroundColor: AppColors.background2,
             body: _OnboardingStep2View(),
           ),
         ),
@@ -99,7 +102,13 @@ class _OnboardingStep2View extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () => FocusScope.of(context).unfocus(),
+      onTap: () {
+        FocusScope.of(context).unfocus();
+        final cubit = context.read<OnboardingStep2Cubit>();
+        if (cubit.state.isCurrencyDropdownOpen) {
+          cubit.toggleCurrencyDropdown();
+        }
+      },
       behavior: HitTestBehavior.opaque,
       child: ColoredBox(
         color: AppColors.background2,
@@ -128,7 +137,7 @@ class _OnboardingStep2View extends StatelessWidget {
                         color: AppColors.textSecondary,
                       ),
                     ),
-                    Gaps.hLg,
+                    Gaps.hMd,
                     if (state.profile == null)
                       _AddRow(
                         onTap: () => _openProfileSheet(context, state.profile),
@@ -146,7 +155,7 @@ class _OnboardingStep2View extends StatelessWidget {
                         color: AppColors.textSecondary,
                       ),
                     ),
-                    Gaps.hLg,
+                    Gaps.hMd,
                     ...state.participants
                         .map(
                           (p) => Padding(
@@ -165,7 +174,7 @@ class _OnboardingStep2View extends StatelessWidget {
                       _AddRow(
                         onTap: () => _openParticipantSheet(context),
                       ),
-                    Gaps.hLg,
+                    Gaps.hMd,
                     Text(
                       AppStrings.onboardingStep2SelectCurrencyLabel,
                       style: AppTextStyles.body3.copyWith(
@@ -175,10 +184,13 @@ class _OnboardingStep2View extends StatelessWidget {
                     Gaps.hSm,
                     _CurrencyDropdown(
                       value: state.selectedCurrency,
-                      onTap: () =>
-                          _openCurrencyPicker(context, state.selectedCurrency),
+                      onChanged: (currency) => unawaited(
+                        context.read<OnboardingStep2Cubit>().selectCurrency(
+                          currency,
+                        ),
+                      ),
                     ),
-                    Gaps.hXl,
+                    Gaps.hLg,
                     _BottomButtons(
                       canContinue: state.canContinue,
                       isSubmitting: state.isSubmitting,
@@ -223,16 +235,7 @@ class _OnboardingStep2View extends StatelessWidget {
   }
 
   Future<void> _openParticipantSheet(BuildContext context) async {
-    final result = await showAddYourNameSheet(
-      context: context,
-      title: AppStrings.addYourNameTitle,
-      nameLabel: AppStrings.addYourNameAddNameLabel,
-      nameHint: AppStrings.addYourNameParticipantNamePlaceholder,
-      photoLabel: AppStrings.addYourNameAddPhotoLabel,
-      saveLabel: AppStrings.commonSave,
-      clearLabel: AppStrings.commonClearInformation,
-      showClear: false,
-    );
+    final result = await showAddParticipantSheet(context: context);
     if (result == null) return;
     await context.read<OnboardingStep2Cubit>().addParticipant(
       name: result.name,
@@ -256,42 +259,6 @@ class _OnboardingStep2View extends StatelessWidget {
     await context.read<OnboardingStep2Cubit>().deleteParticipant(
       participant.id,
     );
-  }
-
-  Future<void> _openCurrencyPicker(
-    BuildContext context,
-    Currency? current,
-  ) async {
-    final selected = await showModalBottomSheet<Currency>(
-      context: context,
-      shape: const RoundedRectangleBorder(borderRadius: AppRadius.xl),
-      builder: (_) => SafeArea(
-        child: Padding(
-          padding: Insets.allLg,
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              borderRadius: AppRadius.lg,
-              border: Border.all(color: AppColors.accentPrimary, width: 1),
-              color: AppColors.layerPrimary,
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                for (final c in Currency.values)
-                  _CurrencyPickerItem(
-                    label: c.code,
-                    isSelected: c == current,
-                    showDivider: c != Currency.values.last,
-                    onTap: () => Navigator.of(context).pop(c),
-                  ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-    if (selected == null) return;
-    await context.read<OnboardingStep2Cubit>().selectCurrency(selected);
   }
 }
 
@@ -370,7 +337,7 @@ class _PersonRow extends StatelessWidget {
         Expanded(
           child: Text(
             name,
-            style: AppTextStyles.body1.copyWith(color: AppColors.textPrimary),
+            style: AppTextStyles.body3.copyWith(color: AppColors.textPrimary),
           ),
         ),
         if (onDelete != null)
@@ -394,54 +361,26 @@ class _PersonRow extends StatelessWidget {
 class _CurrencyDropdown extends StatelessWidget {
   const _CurrencyDropdown({
     required this.value,
-    required this.onTap,
+    required this.onChanged,
   });
 
   final Currency? value;
-  final VoidCallback onTap;
+  final ValueChanged<Currency> onChanged;
 
   @override
   Widget build(BuildContext context) {
-    final selected = value;
-    final backgroundColor = selected == null
-        ? AppColors.layerPrimary
-        : AppColors.accentSecondary;
-    final textColor = selected == null
-        ? AppColors.textSecondary
-        : AppColors.textPrimary;
-    final iconColor = textColor;
-
-    return InkWell(
-      onTap: onTap,
-      borderRadius: AppRadius.lg,
-      child: Ink(
-        height: AppSizes.buttonHeight,
-        width: AppSizes.currencyDropdownWidth,
-        padding: Insets.hMd,
-        decoration: BoxDecoration(
-          color: backgroundColor,
-          borderRadius: AppRadius.lg,
-          border: selected == null
-              ? Border.all(color: AppColors.layerSecondary, width: 2)
-              : null,
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Text(
-                selected?.code ?? AppStrings.onboardingStep2CurrencyPlaceholder,
-                style: AppTextStyles.body1.copyWith(color: textColor),
-              ),
-            ),
-            SvgPicture.asset(
-              AppIcons.chevronDown,
-              width: AppSizes.navIconSize,
-              height: AppSizes.navIconSize,
-              colorFilter: ColorFilter.mode(iconColor, BlendMode.srcIn),
-            ),
-          ],
-        ),
-      ),
+    return AppDropdown<Currency>(
+      value: value,
+      hintText: AppStrings.onboardingStep2CurrencyPlaceholder,
+      entries: [
+        for (final c in Currency.values)
+          AppDropdownEntry(value: c, label: c.code),
+      ],
+      isSelected: value != null,
+      onChanged: (currency) {
+        if (currency == null) return;
+        onChanged(currency);
+      },
     );
   }
 }
@@ -475,56 +414,10 @@ class _BottomButtons extends StatelessWidget {
           label: AppStrings.commonContinue,
           onPressed: (!canContinue || isSubmitting) ? null : () => onContinue(),
           isLoading: isSubmitting,
-          backgroundColor: AppColors.accentSecondary,
+          backgroundColor: AppColors.layerError,
           foregroundColor: AppColors.textPrimary,
         ),
       ],
-    );
-  }
-}
-
-class _CurrencyPickerItem extends StatelessWidget {
-  const _CurrencyPickerItem({
-    required this.label,
-    required this.isSelected,
-    required this.showDivider,
-    required this.onTap,
-  });
-
-  final String label;
-  final bool isSelected;
-  final bool showDivider;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final backgroundColor =
-        isSelected ? AppColors.accentPrimary : AppColors.layerPrimary;
-    final textColor =
-        isSelected ? AppColors.textPrimary : AppColors.textSecondary;
-
-    return InkWell(
-      onTap: onTap,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: backgroundColor,
-          border: showDivider
-              ? const Border(
-                  bottom: BorderSide(color: AppColors.accentPrimary, width: 1),
-                )
-              : null,
-        ),
-        child: Padding(
-          padding: Insets.allMd,
-          child: Align(
-            alignment: Alignment.centerLeft,
-            child: Text(
-              label,
-              style: AppTextStyles.body1.copyWith(color: textColor),
-            ),
-          ),
-        ),
-      ),
     );
   }
 }

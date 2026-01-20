@@ -13,19 +13,19 @@ class HiveStore {
     _initialized = true;
   }
 
-  Future<Box<Map<String, Object?>>> openParticipants() async {
+  Future<Box<Map<dynamic, dynamic>>> openParticipants() async {
     await init();
-    return Hive.openBox<Map<String, Object?>>(participantsBox);
+    return Hive.openBox<Map<dynamic, dynamic>>(participantsBox);
   }
 
-  Future<Box<Map<String, Object?>>> openTransactions() async {
+  Future<Box<Map<dynamic, dynamic>>> openTransactions() async {
     await init();
-    return Hive.openBox<Map<String, Object?>>(transactionsBox);
+    return Hive.openBox<Map<dynamic, dynamic>>(transactionsBox);
   }
 
-  Future<Box<Map<String, Object?>>> openSettings() async {
+  Future<Box<Map<dynamic, dynamic>>> openSettings() async {
     await init();
-    return Hive.openBox<Map<String, Object?>>(settingsBox);
+    return Hive.openBox<Map<dynamic, dynamic>>(settingsBox);
   }
 
   Future<void> clearAll() async {

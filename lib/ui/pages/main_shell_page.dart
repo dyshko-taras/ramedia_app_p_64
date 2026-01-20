@@ -6,6 +6,7 @@ import '../../constants/app_icons.dart';
 import '../../constants/app_routes.dart';
 import '../../constants/app_sizes.dart';
 import '../../constants/app_strings.dart';
+import '../theme/app_colors.dart';
 import 'main_shell_cubit.dart';
 import 'main_shell_state.dart';
 
@@ -49,6 +50,16 @@ class _MainShellView extends StatelessWidget {
               return BottomNavigationBar(
                 currentIndex: state.currentIndex,
                 onTap: context.read<MainShellCubit>().setTab,
+                type: BottomNavigationBarType.fixed,
+                backgroundColor: AppColors.background2,
+                selectedItemColor: AppColors.textSecondary,
+                unselectedItemColor: AppColors.textPrimary.withValues(alpha: 0.5),
+                selectedIconTheme: const IconThemeData(
+                  color: AppColors.textPrimary,
+                ),
+                unselectedIconTheme: IconThemeData(
+                  color: AppColors.textPrimary.withValues(alpha: 0.5),
+                ),
                 items: const [
                   BottomNavigationBarItem(
                     icon: _NavIcon(AppIcons.navHome),
@@ -79,10 +90,13 @@ class _NavIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final color = IconTheme.of(context).color;
     return SvgPicture.asset(
       asset,
       width: AppSizes.navIconSize,
       height: AppSizes.navIconSize,
+      colorFilter:
+          color == null ? null : ColorFilter.mode(color, BlendMode.srcIn),
     );
   }
 }

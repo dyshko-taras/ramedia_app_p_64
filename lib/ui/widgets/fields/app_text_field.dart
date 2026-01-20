@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../constants/app_spacing.dart';
+import '../../theme/app_theme.dart';
 
 class AppTextField extends StatelessWidget {
   const AppTextField({
@@ -12,6 +13,7 @@ class AppTextField extends StatelessWidget {
     this.textInputAction,
     this.onChanged,
     this.validator,
+    this.suffixIcon,
     this.autofocus = false,
     this.obscureText = false,
     this.enabled = true,
@@ -26,6 +28,7 @@ class AppTextField extends StatelessWidget {
   final TextInputAction? textInputAction;
   final ValueChanged<String>? onChanged;
   final String? Function(String value)? validator;
+  final Widget? suffixIcon;
   final bool autofocus;
   final bool obscureText;
   final bool enabled;
@@ -36,6 +39,7 @@ class AppTextField extends StatelessWidget {
   Widget build(BuildContext context) {
     return TextFormField(
       controller: controller,
+      style: AppTextStyles.input,
       autofocus: autofocus,
       enabled: enabled,
       obscureText: obscureText,
@@ -50,8 +54,8 @@ class AppTextField extends StatelessWidget {
         labelText: labelText,
         hintText: hintText,
         contentPadding: Insets.allMd,
+        suffixIcon: suffixIcon,
       ),
     );
   }
 }
-

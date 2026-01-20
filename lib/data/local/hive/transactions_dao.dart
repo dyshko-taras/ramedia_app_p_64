@@ -5,10 +5,10 @@ import '../../models/budget_transaction.dart';
 class TransactionsDao {
   TransactionsDao(this._box);
 
-  final Box<Map<String, Object?>> _box;
+  final Box<Map<dynamic, dynamic>> _box;
 
   List<BudgetTransaction> getAll() => _box.values
-      .map(BudgetTransaction.fromMap)
+      .map((m) => BudgetTransaction.fromMap(m.cast<Object?, Object?>()))
       .where((t) => t.id.isNotEmpty)
       .toList()
     ..sort((a, b) => a.scheduledAt.compareTo(b.scheduledAt));
@@ -16,7 +16,7 @@ class TransactionsDao {
   BudgetTransaction? getById(String id) {
     final map = _box.get(id);
     if (map == null) return null;
-    return BudgetTransaction.fromMap(map);
+    return BudgetTransaction.fromMap(map.cast<Object?, Object?>());
   }
 
   Future<void> upsert(BudgetTransaction tx) => _box.put(tx.id, tx.toMap());
@@ -25,4 +25,3 @@ class TransactionsDao {
 
   Future<void> clear() => _box.clear();
 }
-

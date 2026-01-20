@@ -39,7 +39,8 @@ Future<AddYourNameResult?> showAddYourNameSheet({
   return showModalBottomSheet<AddYourNameResult>(
     context: context,
     isScrollControlled: true,
-    shape: const RoundedRectangleBorder(borderRadius: AppRadius.xl),
+    backgroundColor: AppColors.layerSecondary,
+    shape: const RoundedRectangleBorder(borderRadius: AppRadius.sheetTop),
     builder: (_) => _AddYourNameSheet(
       title: title,
       nameLabel: nameLabel,
@@ -119,98 +120,128 @@ class _AddYourNameSheetState extends State<_AddYourNameSheet> {
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
     final canSave = _controller.text.trim().isNotEmpty;
-    final showClearButton = widget.showClear && (_controller.text.isNotEmpty || _photoPath != null);
+    final showClearButton =
+        widget.showClear && (_controller.text.isNotEmpty || _photoPath != null);
 
     return GestureDetector(
       onTap: () => FocusScope.of(context).unfocus(),
       behavior: HitTestBehavior.opaque,
-      child: Padding(
-        padding: EdgeInsets.only(bottom: bottomInset),
-        child: SafeArea(
-          top: false,
-          child: Padding(
-            padding: Insets.allLg,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Center(
-                        child: Text(
-                          widget.title,
-                          style: Theme.of(context).textTheme.titleMedium,
-                        ),
-                      ),
-                    ),
-                    IconButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      icon: const Icon(Icons.close),
-                    ),
-                  ],
-                ),
-                Gaps.hLg,
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(widget.nameLabel),
-                ),
-                Gaps.hSm,
-                AppTextField(
-                  controller: _controller,
-                  hintText: widget.nameHint,
-                  onChanged: (_) => setState(() {}),
-                ),
-                Gaps.hLg,
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(widget.photoLabel),
-                ),
-                Gaps.hSm,
-                _PhotoPicker(
-                  photoPath: _photoPath,
-                  onTap: _pickPhoto,
-                ),
-                Gaps.hLg,
-                if (showClearButton) ...[
-                  SizedBox(
-                    height: AppSizes.buttonHeight,
-                    width: double.infinity,
-                    child: FilledButton(
-                      onPressed: _clear,
-                      style: FilledButton.styleFrom(
-                        backgroundColor: Theme.of(context).colorScheme.error,
-                        foregroundColor: AppColors.textPrimary,
-                        shape: const RoundedRectangleBorder(
-                          borderRadius: AppRadius.xl,
-                        ),
-                      ),
-                      child: Text(widget.clearLabel),
-                    ),
-                  ),
-                  Gaps.hSm,
-                ],
-                AppPrimaryButton(
-                  label: widget.saveLabel,
-                  onPressed: canSave
-                      ? () {
-                          Navigator.of(context).pop(
-                            AddYourNameResult(
-                              name: _controller.text.trim(),
-                              photoPath: _photoPath,
-                              didClear: _didClear,
+      child: ColoredBox(
+        color: AppColors.layerSecondary,
+        child: Padding(
+          padding: EdgeInsets.only(bottom: bottomInset),
+          child: SafeArea(
+            top: false,
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.only(bottom: AppSpacing.lg),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Padding(
+                    padding: Insets.allLg,
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Center(
+                            child: Text(
+                              widget.title,
+                              style: Theme.of(context).textTheme.titleMedium,
                             ),
-                          );
-                        }
-                      : null,
-                ),
-                if (!widget.showClear) ...[
-                  Gaps.hSm,
-                  AppSecondaryButton(
-                    label: AppStrings.commonCancel,
-                    onPressed: () => Navigator.of(context).pop(),
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: () => Navigator.of(context).pop(),
+                          icon: const Icon(Icons.close),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Divider(height: 1),
+                  Padding(
+                    padding: Insets.allLg,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            widget.nameLabel,
+                            style:
+                                Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                      color: AppColors.textGray,
+                                    ),
+                          ),
+                        ),
+                        Gaps.hSm,
+                        AppTextField(
+                          controller: _controller,
+                          hintText: widget.nameHint,
+                          onChanged: (_) => setState(() {}),
+                        ),
+                        Gaps.hLg,
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            widget.photoLabel,
+                            style:
+                                Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                      color: AppColors.textGray,
+                                    ),
+                          ),
+                        ),
+                        Gaps.hSm,
+                        _PhotoPicker(
+                          photoPath: _photoPath,
+                          onTap: _pickPhoto,
+                        ),
+                        Gaps.hLg,
+                        if (showClearButton) ...[
+                          SizedBox(
+                            height: AppSizes.buttonHeight,
+                            width: double.infinity,
+                            child: FilledButton(
+                              onPressed: _clear,
+                              style: FilledButton.styleFrom(
+                                backgroundColor:
+                                    Theme.of(context).colorScheme.error,
+                                foregroundColor: AppColors.textPrimary,
+                                shape: const RoundedRectangleBorder(
+                                  borderRadius: AppRadius.xl,
+                                ),
+                              ),
+                              child: Text(widget.clearLabel),
+                            ),
+                          ),
+                          Gaps.hSm,
+                        ],
+                        AppPrimaryButton(
+                          label: widget.saveLabel,
+                          onPressed: canSave
+                              ? () {
+                                  Navigator.of(context).pop(
+                                    AddYourNameResult(
+                                      name: _controller.text.trim(),
+                                      photoPath: _photoPath,
+                                      didClear: _didClear,
+                                    ),
+                                  );
+                                }
+                              : null,
+                          backgroundColor: AppColors.accentPrimary,
+                          foregroundColor: AppColors.textPrimary,
+                        ),
+                        if (!widget.showClear) ...[
+                          Gaps.hSm,
+                          AppSecondaryButton(
+                            label: AppStrings.commonCancel,
+                            onPressed: () => Navigator.of(context).pop(),
+                          ),
+                        ],
+                      ],
+                    ),
                   ),
                 ],
-              ],
+              ),
             ),
           ),
         ),
@@ -234,8 +265,8 @@ class _PhotoPicker extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       borderRadius: AppRadius.xl,
-      child: Ink(
-        height: AppSizes.photoPickerHeight,
+      child: Container(
+        height: 200,
         width: double.infinity,
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.surface,

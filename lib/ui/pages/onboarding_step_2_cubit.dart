@@ -1,5 +1,6 @@
 import 'package:bloc/bloc.dart';
 
+import '../../constants/app_ids.dart';
 import '../../constants/app_strings.dart';
 import '../../constants/app_routes.dart';
 import '../../data/models/currency.dart';
@@ -26,7 +27,9 @@ class OnboardingStep2Cubit extends Cubit<OnboardingStep2State> {
 
   Future<void> load() async {
     final profile = await _profileRepository.getProfile();
-    final participants = await _participantsRepository.getAll();
+    final participants = (await _participantsRepository.getAll())
+        .where((p) => p.id != AppIds.profileParticipantId)
+        .toList();
     final currencyCode = _settingsRepository.getSelectedCurrencyCode();
 
     emit(
@@ -52,6 +55,14 @@ class OnboardingStep2Cubit extends Cubit<OnboardingStep2State> {
     );
 
     await _profileRepository.upsertProfile(profile);
+    await _participantsRepository.upsert(
+      Participant(
+        id: AppIds.profileParticipantId,
+        name: name,
+        photoPath: photoPath,
+        createdAt: profile.createdAt,
+      ),
+    );
     emit(state.copyWith(profile: profile));
   }
 
@@ -91,11 +102,6 @@ class OnboardingStep2Cubit extends Cubit<OnboardingStep2State> {
     );
   }
 
-  Future<void> selectCurrency(Currency currency) async {
-    await _settingsRepository.setSelectedCurrencyCode(currency.code);
-    emit(state.copyWith(selectedCurrency: currency));
-  }
-
   Future<void> skip() async {
     await _settingsRepository.setOnboardingCompleted(true);
     if (state.selectedCurrency == null) {
@@ -117,5 +123,23 @@ class OnboardingStep2Cubit extends Cubit<OnboardingStep2State> {
 
   void acknowledgeNavigation() {
     emit(state.copyWith(clearNextRoute: true));
+  }
+
+  void toggleCurrencyDropdown() {
+    emit(
+      state.copyWith(
+        isCurrencyDropdownOpen: !state.isCurrencyDropdownOpen,
+      ),
+    );
+  }
+
+  Future<void> selectCurrency(Currency currency) async {
+    emit(
+      state.copyWith(
+        selectedCurrency: currency,
+        isCurrencyDropdownOpen: false, // Закриваємо dropdown після вибору
+      ),
+    );
+    await _settingsRepository.setSelectedCurrencyCode(currency.code);
   }
 }
