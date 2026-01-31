@@ -40,6 +40,7 @@ Future<AddIncomeResult?> showAddIncomeSheet({
     isScrollControlled: true,
     backgroundColor: AppColors.layerSecondary,
     shape: const RoundedRectangleBorder(borderRadius: AppRadius.sheetTop),
+    clipBehavior: Clip.antiAlias,
     builder: (_) => _AddIncomeSheet(participants: participants),
   );
 }
@@ -82,7 +83,8 @@ class _AddIncomeSheetState extends State<_AddIncomeSheet> {
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
     final canSave =
-        _selectedParticipantId != null && _parseCents(_amountController.text) > 0;
+        _selectedParticipantId != null &&
+        _parseCents(_amountController.text) > 0;
 
     return GestureDetector(
       onTap: () => FocusScope.of(context).unfocus(),
@@ -94,6 +96,7 @@ class _AddIncomeSheetState extends State<_AddIncomeSheet> {
           child: SafeArea(
             top: false,
             child: SingleChildScrollView(
+              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
               padding: const EdgeInsets.only(bottom: AppSpacing.lg),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -214,7 +217,12 @@ class _AddIncomeSheetState extends State<_AddIncomeSheet> {
   Future<void> _refreshParticipants() async {
     final participants = await context.read<ParticipantsRepository>().getAll();
     if (!mounted) return;
-    setState(() => _participants = participants);
+    setState(() {
+      _participants = participants;
+      _selectedParticipantId ??= participants.isEmpty
+          ? null
+          : participants.first.id;
+    });
   }
 
   Future<void> _addParticipant() async {
@@ -277,22 +285,24 @@ class _ChoicePill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
+    return Material(
+      color: isSelected ? AppColors.accentSecondary : AppColors.layerPrimary,
       borderRadius: AppRadius.xl,
-      child: Ink(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.xl,
-          vertical: AppSpacing.md,
-        ),
-        decoration: BoxDecoration(
-          color: isSelected ? AppColors.accentSecondary : AppColors.layerPrimary,
-          borderRadius: AppRadius.xl,
-        ),
-        child: Text(
-          label,
-          style: AppTextStyles.body3.copyWith(
-            color: isSelected ? AppColors.textPrimary : AppColors.textSecondary,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: AppRadius.xl,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.xl,
+            vertical: AppSpacing.md,
+          ),
+          child: Text(
+            label,
+            style: AppTextStyles.body3.copyWith(
+              color: isSelected
+                  ? AppColors.textPrimary
+                  : AppColors.textSecondary,
+            ),
           ),
         ),
       ),
@@ -311,14 +321,13 @@ class _DateField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
+    return GestureDetector(
       onTap: onTap,
-      borderRadius: AppRadius.xl,
-      child: Ink(
+      child: Container(
         height: AppSizes.buttonHeight,
         padding: Insets.hLg,
         decoration: BoxDecoration(
-          color: AppColors.layerPrimary,
+          color: AppColors.layerSecondary,
           borderRadius: AppRadius.xl,
           border: Border.all(color: AppColors.accentPrimary, width: 2),
         ),
@@ -327,7 +336,9 @@ class _DateField extends StatelessWidget {
             Expanded(
               child: Text(
                 label,
-                style: AppTextStyles.body3.copyWith(color: AppColors.textSecondary),
+                style: AppTextStyles.body3.copyWith(
+                  color: AppColors.textSecondary,
+                ),
               ),
             ),
             Container(

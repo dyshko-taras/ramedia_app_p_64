@@ -82,13 +82,15 @@
 
 ## Phase 8 — Home (Family Bank)
 
-- [ ] `HomePage` + `HomeCubit` + `HomeState` (UI + логіка) згідно `info/technical_spec.md` + PRD strings/icons.
-- [ ] “Quick add” дії:
-  - [ ] Add income (modal)
-  - [ ] Add expenses (modal + split transaction логіка)
-  - [ ] Add participant (modal)
-- [ ] Empty state + list/деталі (мінімально до вимог).
-- [ ] Обробка edge cases з tech spec (перевищення балансу, enter different amount, тощо).
+- [x] `HomePage` + `HomeCubit` + `HomeState` (UI + логіка) згідно `info/technical_spec.md` + PRD strings/icons.
+- [x] “Quick add” дії:
+  - [x] Add income (modal)
+  - [x] Add expenses (modal + split transaction)
+  - [x] Add participant (modal)
+- [x] Empty state + list/деталі (мінімально до вимог) + контекстне меню Edit/Delete + confirm delete.
+- [x] Обробка edge cases з tech spec: перевищення балансу → borrow chips; якщо немає хто позичить → “Enter a different amount”.
+- [ ] UI деталізація під дизайн (точні відступи/розміри/кольори) після того як ти докинеш решту скрінів для Home+modals.
+- [ ] “Edit transaction” (довге/коротке натискання → Edit) + повторне відкриття відповідного modal з prefill.
 
 ## Phase 9 — Participants Balance
 

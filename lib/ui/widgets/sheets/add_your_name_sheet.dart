@@ -41,6 +41,7 @@ Future<AddYourNameResult?> showAddYourNameSheet({
     isScrollControlled: true,
     backgroundColor: AppColors.layerSecondary,
     shape: const RoundedRectangleBorder(borderRadius: AppRadius.sheetTop),
+    clipBehavior: Clip.antiAlias,
     builder: (_) => _AddYourNameSheet(
       title: title,
       nameLabel: nameLabel,
@@ -133,6 +134,7 @@ class _AddYourNameSheetState extends State<_AddYourNameSheet> {
           child: SafeArea(
             top: false,
             child: SingleChildScrollView(
+              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
               padding: const EdgeInsets.only(bottom: AppSpacing.lg),
               child: Column(
                 mainAxisSize: MainAxisSize.min,

@@ -49,6 +49,7 @@ Future<AddExpensesResult?> showAddExpensesSheet({
     isScrollControlled: true,
     backgroundColor: AppColors.layerSecondary,
     shape: const RoundedRectangleBorder(borderRadius: AppRadius.sheetTop),
+    clipBehavior: Clip.antiAlias,
     builder: (_) => _AddExpensesSheet(
       participants: participants,
       balancesByParticipantId: balancesByParticipantId,
@@ -71,13 +72,12 @@ class _AddExpensesSheet extends StatefulWidget {
 
 class _AddExpensesSheetState extends State<_AddExpensesSheet> {
   final _amountController = TextEditingController();
-  final _percentController = TextEditingController();
 
   List<Participant> _participants = const [];
   String? _selectedParticipantId;
   DateTime _scheduledAt = DateTime.now();
   bool _isSplit = false;
-  String? _splitWithParticipantId;
+  final Map<String, TextEditingController> _splitPercentControllersById = {};
   String? _borrowFromParticipantId;
   late final String _currencyCode;
 
@@ -93,7 +93,9 @@ class _AddExpensesSheetState extends State<_AddExpensesSheet> {
   @override
   void dispose() {
     _amountController.dispose();
-    _percentController.dispose();
+    for (final c in _splitPercentControllersById.values) {
+      c.dispose();
+    }
     super.dispose();
   }
 
@@ -113,23 +115,27 @@ class _AddExpensesSheetState extends State<_AddExpensesSheet> {
     final eligibleBorrowers = selectedParticipantId == null || missingCents <= 0
         ? const <Participant>[]
         : _participants
-            .where(
-              (p) =>
-                  p.id != selectedParticipantId &&
-                  (widget.balancesByParticipantId[p.id] ?? 0) >= missingCents,
-            )
-            .toList();
+              .where(
+                (p) =>
+                    p.id != selectedParticipantId &&
+                    (widget.balancesByParticipantId[p.id] ?? 0) >= missingCents,
+              )
+              .toList();
 
-    final isBorrowFlow = !_isSplit &&
+    final isBorrowFlow =
+        !_isSplit &&
         selectedParticipantId != null &&
         cents > 0 &&
         cents > selectedBalanceCents;
 
     final canSaveBase = _selectedParticipantId != null && cents > 0;
-    final percent = int.tryParse(_percentController.text.trim());
-    final canSaveSplit = !_isSplit ||
-        (_splitWithParticipantId != null && percent != null && percent > 0);
-    final canSaveBorrow = !isBorrowFlow ||
+    final splitPlan = _computeSplitPlan(
+      payerId: selectedParticipantId,
+      amountCents: cents,
+    );
+    final canSaveSplit = !_isSplit || splitPlan != null;
+    final canSaveBorrow =
+        !isBorrowFlow ||
         (eligibleBorrowers.isNotEmpty &&
             _borrowFromParticipantId != null &&
             eligibleBorrowers.any((p) => p.id == _borrowFromParticipantId));
@@ -138,6 +144,18 @@ class _AddExpensesSheetState extends State<_AddExpensesSheet> {
     final splitCandidates = selectedParticipantId == null
         ? _participants
         : _participants.where((p) => p.id != selectedParticipantId).toList();
+    final participantById = {
+      for (final p in _participants) p.id: p,
+    };
+    final splitOtherPercentTotalRaw = _splitPercentControllersById.values.fold(
+      0,
+      (sum, c) => sum + (int.tryParse(c.text.trim()) ?? 0).clamp(0, 100),
+    );
+    final splitIsOver100 = splitOtherPercentTotalRaw > 100;
+    final splitPayerPercentRaw = (100 - splitOtherPercentTotalRaw).clamp(
+      0,
+      100,
+    );
 
     return GestureDetector(
       onTap: () => FocusScope.of(context).unfocus(),
@@ -149,6 +167,7 @@ class _AddExpensesSheetState extends State<_AddExpensesSheet> {
           child: SafeArea(
             top: false,
             child: SingleChildScrollView(
+              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
               padding: const EdgeInsets.only(bottom: AppSpacing.lg),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -223,8 +242,14 @@ class _AddExpensesSheetState extends State<_AddExpensesSheet> {
                             Expanded(
                               child: AppTextField(
                                 controller: _amountController,
-                                hintText: AppStrings.addExpensesAmountPlaceholder,
+                                hintText:
+                                    AppStrings.addExpensesAmountPlaceholder,
                                 keyboardType: TextInputType.number,
+                                textStyle: isBorrowFlow
+                                    ? AppTextStyles.input.copyWith(
+                                        color: AppColors.layerError,
+                                      )
+                                    : null,
                                 onChanged: (_) => setState(() {}),
                               ),
                             ),
@@ -232,151 +257,202 @@ class _AddExpensesSheetState extends State<_AddExpensesSheet> {
                             AppCurrencyPill(currencyCode: _currencyCode),
                           ],
                         ),
-                      if (isBorrowFlow) ...[
-                        Gaps.hSm,
-                        Align(
-                          alignment: Alignment.centerLeft,
-                          child: Text(
-                            AppStrings.transactionExceedsBalance.replaceFirst(
-                              '{amount}',
-                              _formatMoney(missingCents),
-                            ),
-                            style: AppTextStyles.body3.copyWith(
-                              color: AppColors.layerError,
-                            ),
-                          ),
-                        ),
-                        Gaps.hSm,
-                        Align(
-                          alignment: Alignment.centerLeft,
-                          child: Text(
-                            AppStrings.transactionBorrowMissingAmount,
-                            style: AppTextStyles.body1.copyWith(
-                              color: AppColors.textGray,
-                            ),
-                          ),
-                        ),
-                        Gaps.hMd,
-                        if (eligibleBorrowers.isNotEmpty)
-                          SizedBox(
-                            height: AppSizes.buttonHeight,
-                            child: ListView.separated(
-                              scrollDirection: Axis.horizontal,
-                              itemCount: eligibleBorrowers.length,
-                              separatorBuilder: (_, __) => const SizedBox(
-                                width: AppSpacing.md,
-                              ),
-                              itemBuilder: (context, index) {
-                                final p = eligibleBorrowers[index];
-                                return _ChoicePill(
-                                  label: p.name,
-                                  isSelected: _borrowFromParticipantId == p.id,
-                                  onTap: () => setState(
-                                    () => _borrowFromParticipantId = p.id,
-                                  ),
-                                );
-                              },
-                            ),
-                          )
-                        else
+                        if (isBorrowFlow) ...[
+                          Gaps.hSm,
                           Align(
                             alignment: Alignment.centerLeft,
                             child: Text(
-                              AppStrings.enterDifferentAmountMessage,
+                              AppStrings.transactionExceedsBalance.replaceFirst(
+                                '{amount}',
+                                _formatMoney(missingCents),
+                              ),
                               style: AppTextStyles.body3.copyWith(
                                 color: AppColors.layerError,
                               ),
                             ),
                           ),
-                      ],
-                      Gaps.hLg,
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          AppStrings.addExpensesSplitTransactionLabel,
-                          style: AppTextStyles.body1.copyWith(
-                            color: AppColors.textGray,
-                          ),
-                        ),
-                      ),
-                      Gaps.hMd,
-                      Row(
-                        children: [
-                          _RadioChoice(
-                            label: AppStrings.commonYes,
-                            isSelected: _isSplit,
-                            onTap: () => setState(() => _isSplit = true),
-                          ),
-                          Gaps.wXl,
-                          _RadioChoice(
-                            label: AppStrings.commonNo,
-                            isSelected: !_isSplit,
-                            onTap: () => setState(() => _isSplit = false),
-                          ),
-                        ],
-                      ),
-                      if (_isSplit) ...[
-                        Gaps.hLg,
-                        if (splitCandidates.isNotEmpty)
-                          SizedBox(
-                            height: AppSizes.buttonHeight,
-                            child: ListView.separated(
-                              scrollDirection: Axis.horizontal,
-                              itemCount: splitCandidates.length,
-                              separatorBuilder: (_, __) => const SizedBox(
-                                width: AppSpacing.md,
-                              ),
-                              itemBuilder: (context, index) {
-                                final p = splitCandidates[index];
-                                return _ChoicePill(
-                                  label: p.name,
-                                  isSelected: _splitWithParticipantId == p.id,
-                                  onTap: () => setState(
-                                    () => _splitWithParticipantId = p.id,
-                                  ),
-                                );
-                              },
-                            ),
-                          ),
-                        Gaps.hMd,
-                        AppTextField(
-                          controller: _percentController,
-                          hintText: AppStrings.addExpensesEnterPercentagePlaceholder,
-                          keyboardType: TextInputType.number,
-                          onChanged: (_) => setState(() {}),
-                          suffixIcon: Center(
-                            widthFactor: 1,
+                          Gaps.hSm,
+                          Align(
+                            alignment: Alignment.centerLeft,
                             child: Text(
-                              '%',
+                              AppStrings.transactionBorrowMissingAmount,
                               style: AppTextStyles.body1.copyWith(
-                                color: AppColors.textSecondary,
+                                color: AppColors.textGray,
                               ),
                             ),
                           ),
-                        ),
-                      ],
-                      Gaps.hLg,
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          AppStrings.addExpensesPaymentScheduleLabel,
-                          style: AppTextStyles.body1.copyWith(
-                            color: AppColors.textGray,
+                          Gaps.hMd,
+                          if (eligibleBorrowers.isNotEmpty)
+                            SizedBox(
+                              height: AppSizes.buttonHeight,
+                              child: ListView.separated(
+                                scrollDirection: Axis.horizontal,
+                                itemCount: eligibleBorrowers.length,
+                                separatorBuilder: (_, __) => const SizedBox(
+                                  width: AppSpacing.md,
+                                ),
+                                itemBuilder: (context, index) {
+                                  final p = eligibleBorrowers[index];
+                                  return _ChoicePill(
+                                    label: p.name,
+                                    isSelected:
+                                        _borrowFromParticipantId == p.id,
+                                    onTap: () => setState(
+                                      () => _borrowFromParticipantId = p.id,
+                                    ),
+                                  );
+                                },
+                              ),
+                            )
+                          else
+                            Align(
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                AppStrings.enterDifferentAmountMessage,
+                                style: AppTextStyles.body3.copyWith(
+                                  color: AppColors.layerError,
+                                ),
+                              ),
+                            ),
+                        ],
+                        if (!isBorrowFlow) ...[
+                          Gaps.hLg,
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              AppStrings.addExpensesSplitTransactionLabel,
+                              style: AppTextStyles.body1.copyWith(
+                                color: AppColors.textGray,
+                              ),
+                            ),
+                          ),
+                          Gaps.hMd,
+                          Row(
+                            children: [
+                              _RadioChoice(
+                                label: AppStrings.commonYes,
+                                isSelected: _isSplit,
+                                onTap: () => setState(() {
+                                  _isSplit = true;
+                                  _borrowFromParticipantId = null;
+                                }),
+                              ),
+                              Gaps.wXl,
+                              _RadioChoice(
+                                label: AppStrings.commonNo,
+                                isSelected: !_isSplit,
+                                onTap: () => setState(() {
+                                  _isSplit = false;
+                                  for (final c
+                                      in _splitPercentControllersById.values) {
+                                    c.dispose();
+                                  }
+                                  _splitPercentControllersById.clear();
+                                }),
+                              ),
+                            ],
+                          ),
+                          if (_isSplit) ...[
+                            Gaps.hLg,
+                            if (splitCandidates.isNotEmpty)
+                              SizedBox(
+                                height: AppSizes.buttonHeight,
+                                child: ListView.separated(
+                                  scrollDirection: Axis.horizontal,
+                                  itemCount: splitCandidates.length,
+                                  separatorBuilder: (_, __) => const SizedBox(
+                                    width: AppSpacing.md,
+                                  ),
+                                  itemBuilder: (context, index) {
+                                    final p = splitCandidates[index];
+                                    final isSelected =
+                                        _splitPercentControllersById
+                                            .containsKey(p.id);
+                                    return _ChoicePill(
+                                      label: p.name,
+                                      isSelected: isSelected,
+                                      onTap: () => setState(() {
+                                        if (isSelected) {
+                                          _splitPercentControllersById
+                                              .remove(p.id)
+                                              ?.dispose();
+                                          return;
+                                        }
+                                        _splitPercentControllersById[p.id] =
+                                            TextEditingController();
+                                      }),
+                                    );
+                                  },
+                                ),
+                              ),
+                            if (_splitPercentControllersById.isNotEmpty) ...[
+                              Gaps.hMd,
+                              for (final entry
+                                  in _splitPercentControllersById.entries) ...[
+                                _SplitRow(
+                                  participantName:
+                                      participantById[entry.key]?.name ?? '—',
+                                  controller: entry.value,
+                                  onChanged: () => setState(() {}),
+                                ),
+                                Gaps.hSm,
+                              ],
+                              Align(
+                                alignment: Alignment.centerLeft,
+                                child: Text(
+                                  AppStrings.addExpensesRemainingPercent
+                                      .replaceFirst(
+                                        '{percent}',
+                                        (100 - splitOtherPercentTotalRaw)
+                                            .toString(),
+                                      ),
+                                  style: AppTextStyles.body3.copyWith(
+                                    color: splitIsOver100
+                                        ? AppColors.layerError
+                                        : AppColors.textGray,
+                                  ),
+                                ),
+                              ),
+                              Align(
+                                alignment: Alignment.centerLeft,
+                                child: Text(
+                                  AppStrings.addExpensesPayerPercent
+                                      .replaceFirst(
+                                        '{percent}',
+                                        splitPayerPercentRaw.toString(),
+                                      ),
+                                  style: AppTextStyles.body3.copyWith(
+                                    color: splitIsOver100
+                                        ? AppColors.layerError
+                                        : AppColors.textGray,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ],
+                        Gaps.hLg,
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            AppStrings.addExpensesPaymentScheduleLabel,
+                            style: AppTextStyles.body1.copyWith(
+                              color: AppColors.textGray,
+                            ),
                           ),
                         ),
-                      ),
-                      Gaps.hSm,
-                      _DateField(
-                        label: _formatDate(_scheduledAt),
-                        onTap: () => unawaited(_pickDate()),
-                      ),
-                      Gaps.hXl,
-                      AppPrimaryButton(
-                        label: AppStrings.commonSave,
-                        onPressed: canSave ? _onSave : null,
-                        backgroundColor: AppColors.accentPrimary,
-                        foregroundColor: AppColors.textPrimary,
-                      ),
+                        Gaps.hSm,
+                        _DateField(
+                          label: _formatDate(_scheduledAt),
+                          onTap: () => unawaited(_pickDate()),
+                        ),
+                        Gaps.hXl,
+                        AppPrimaryButton(
+                          label: AppStrings.commonSave,
+                          onPressed: canSave ? _onSave : null,
+                          backgroundColor: AppColors.accentPrimary,
+                          foregroundColor: AppColors.textPrimary,
+                        ),
                       ],
                     ),
                   ),
@@ -392,7 +468,12 @@ class _AddExpensesSheetState extends State<_AddExpensesSheet> {
   Future<void> _refreshParticipants() async {
     final participants = await context.read<ParticipantsRepository>().getAll();
     if (!mounted) return;
-    setState(() => _participants = participants);
+    setState(() {
+      _participants = participants;
+      _selectedParticipantId ??= participants.isEmpty
+          ? null
+          : participants.first.id;
+    });
   }
 
   Future<void> _addParticipant() async {
@@ -460,7 +541,26 @@ class _AddExpensesSheetState extends State<_AddExpensesSheet> {
       return;
     }
 
-    final percent = int.tryParse(_percentController.text.trim());
+    if (_isSplit) {
+      final plan = _computeSplitPlan(
+        payerId: participantId,
+        amountCents: cents,
+      );
+      if (plan == null) return;
+
+      Navigator.of(context).pop(
+        AddExpensesResult(
+          participantId: participantId,
+          amountCents: cents,
+          scheduledAt: _scheduledAt,
+          isSplit: true,
+          splitMinorByParticipantIdOverride: plan.sharesByParticipantId,
+          splitWithParticipantId: null,
+          splitPercent: null,
+        ),
+      );
+      return;
+    }
 
     Navigator.of(context).pop(
       AddExpensesResult(
@@ -469,9 +569,53 @@ class _AddExpensesSheetState extends State<_AddExpensesSheet> {
         scheduledAt: _scheduledAt,
         isSplit: _isSplit,
         splitMinorByParticipantIdOverride: null,
-        splitWithParticipantId: _splitWithParticipantId,
-        splitPercent: percent,
+        splitWithParticipantId: null,
+        splitPercent: null,
       ),
+    );
+  }
+
+  _SplitPlan? _computeSplitPlan({
+    required String? payerId,
+    required int amountCents,
+  }) {
+    if (!_isSplit) return null;
+    if (payerId == null) return null;
+    if (amountCents <= 0) return null;
+    if (_splitPercentControllersById.isEmpty) return null;
+
+    final percentsById = <String, int>{};
+    var othersPercentTotal = 0;
+    for (final entry in _splitPercentControllersById.entries) {
+      final raw = entry.value.text.trim();
+      if (raw.isEmpty) return null;
+      final value = int.tryParse(raw);
+      if (value == null) return null;
+      if (value <= 0 || value > 100) return null;
+      othersPercentTotal += value;
+      if (othersPercentTotal > 100) return null;
+      percentsById[entry.key] = value;
+    }
+
+    final payerPercent = 100 - othersPercentTotal;
+    if (payerPercent < 0) return null;
+
+    final sharesByParticipantId = <String, int>{};
+    var othersSumMinor = 0;
+    for (final entry in percentsById.entries) {
+      final share = ((amountCents * entry.value) / 100).round();
+      sharesByParticipantId[entry.key] = share;
+      othersSumMinor += share;
+    }
+
+    final payerShare = amountCents - othersSumMinor;
+    if (payerShare < 0) return null;
+    sharesByParticipantId[payerId] = payerShare;
+
+    return _SplitPlan(
+      payerPercent: payerPercent,
+      othersPercentTotal: othersPercentTotal,
+      sharesByParticipantId: sharesByParticipantId,
     );
   }
 
@@ -517,22 +661,24 @@ class _ChoicePill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
+    return Material(
+      color: isSelected ? AppColors.accentSecondary : AppColors.layerPrimary,
       borderRadius: AppRadius.xl,
-      child: Ink(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.xl,
-          vertical: AppSpacing.md,
-        ),
-        decoration: BoxDecoration(
-          color: isSelected ? AppColors.accentSecondary : AppColors.layerPrimary,
-          borderRadius: AppRadius.xl,
-        ),
-        child: Text(
-          label,
-          style: AppTextStyles.body3.copyWith(
-            color: isSelected ? AppColors.textPrimary : AppColors.textSecondary,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: AppRadius.xl,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.xl,
+            vertical: AppSpacing.md,
+          ),
+          child: Text(
+            label,
+            style: AppTextStyles.body3.copyWith(
+              color: isSelected
+                  ? AppColors.textPrimary
+                  : AppColors.textSecondary,
+            ),
           ),
         ),
       ),
@@ -560,24 +706,130 @@ class _RadioChoice extends StatelessWidget {
         padding: Insets.allSm,
         child: Row(
           children: [
-            Icon(
-              isSelected
-                  ? Icons.radio_button_checked
-                  : Icons.radio_button_unchecked,
-              size: AppSizes.navIconSize,
-              color:
-                  isSelected ? AppColors.accentPrimary : AppColors.textSecondary,
-            ),
+            _RadioIcon(isSelected: isSelected),
             Gaps.wSm,
             Text(
               label,
-              style: AppTextStyles.body3.copyWith(color: AppColors.textSecondary),
+              style: AppTextStyles.body3.copyWith(
+                color: AppColors.textSecondary,
+              ),
             ),
           ],
         ),
       ),
     );
   }
+}
+
+class _RadioIcon extends StatelessWidget {
+  const _RadioIcon({required this.isSelected});
+
+  final bool isSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final borderColor = isSelected
+        ? AppColors.accentPrimary
+        : AppColors.textSecondary;
+    return Container(
+      width: 28,
+      height: 28,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(color: borderColor, width: 2),
+      ),
+      child: isSelected
+          ? Center(
+              child: Container(
+                width: 12,
+                height: 12,
+                decoration: const BoxDecoration(
+                  color: AppColors.accentPrimary,
+                  shape: BoxShape.circle,
+                ),
+              ),
+            )
+          : null,
+    );
+  }
+}
+
+class _InfoPill extends StatelessWidget {
+  const _InfoPill({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        color: AppColors.layerPrimary,
+        borderRadius: AppRadius.xl,
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.xl,
+          vertical: AppSpacing.md,
+        ),
+        child: Text(
+          label,
+          style: AppTextStyles.body3.copyWith(color: AppColors.textSecondary),
+        ),
+      ),
+    );
+  }
+}
+
+class _SplitRow extends StatelessWidget {
+  const _SplitRow({
+    required this.participantName,
+    required this.controller,
+    required this.onChanged,
+  });
+
+  final String participantName;
+  final TextEditingController controller;
+  final VoidCallback onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(child: _InfoPill(label: participantName)),
+        Gaps.wMd,
+        SizedBox(
+          width: 140,
+          child: AppTextField(
+            controller: controller,
+            hintText: AppStrings.addExpensesEnterPercentagePlaceholder,
+            keyboardType: TextInputType.number,
+            onChanged: (_) => onChanged(),
+            suffixIcon: Center(
+              widthFactor: 1,
+              child: Text(
+                '%',
+                style: AppTextStyles.body1.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _SplitPlan {
+  const _SplitPlan({
+    required this.payerPercent,
+    required this.othersPercentTotal,
+    required this.sharesByParticipantId,
+  });
+
+  final int payerPercent;
+  final int othersPercentTotal;
+  final Map<String, int> sharesByParticipantId;
 }
 
 class _DateField extends StatelessWidget {
@@ -591,14 +843,13 @@ class _DateField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
+    return GestureDetector(
       onTap: onTap,
-      borderRadius: AppRadius.xl,
-      child: Ink(
+      child: Container(
         height: AppSizes.buttonHeight,
         padding: Insets.hLg,
         decoration: BoxDecoration(
-          color: AppColors.layerPrimary,
+          color: AppColors.layerSecondary,
           borderRadius: AppRadius.xl,
           border: Border.all(color: AppColors.accentPrimary, width: 2),
         ),
@@ -607,12 +858,15 @@ class _DateField extends StatelessWidget {
             Expanded(
               child: Text(
                 label,
-                style: AppTextStyles.body3.copyWith(color: AppColors.textSecondary),
+                style: AppTextStyles.body3.copyWith(
+                  color: AppColors.textSecondary,
+                ),
               ),
             ),
             Container(
-              height: AppSizes.buttonHeight,
+              // height: AppSizes.buttonHeight,
               width: AppSizes.buttonHeight,
+              padding: Insets.allLg,
               decoration: const BoxDecoration(
                 color: AppColors.accentPrimary,
                 shape: BoxShape.circle,

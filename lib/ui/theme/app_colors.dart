@@ -25,4 +25,3 @@ abstract final class AppColors {
   static const layerSecondary = Color(0xFFECECEC);
   static const layerError = Color(0xFFD12222);
 }
-

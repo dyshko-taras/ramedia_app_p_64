@@ -60,86 +60,85 @@ class _HomeView extends StatelessWidget {
 
         final totalText = _formatMoney(state.totalCents);
 
-        return Stack(
+        return Column(
           children: [
-            Column(
+            Stack(
+              clipBehavior: Clip.hardEdge,
               children: [
-                Expanded(
-                  flex: 4,
+                const Positioned.fill(
+                  child: ColoredBox(color: AppColors.layerSecondary),
+                ),
+                Positioned.fill(
+                  bottom: 50,
                   child: Container(color: AppColors.background2),
                 ),
-                Expanded(
-                  flex: 3,
-                  child: Container(color: AppColors.background1),
-                ),
-              ],
-            ),
-            SafeArea(
-              child: Padding(
-                padding: Insets.allLg,
-                child: Column(
-                  children: [
-                    Row(
+                SafeArea(
+                  child: Padding(
+                    padding: Insets.allLg,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        const _AvatarPlaceholder(),
-                        Gaps.wMd,
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                AppStrings.homeWelcome,
-                                style: AppTextStyles.body1.copyWith(
-                                  color: AppColors.textPrimary,
-                                ),
+                        Row(
+                          children: [
+                            const _AvatarPlaceholder(),
+                            Gaps.wMd,
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    AppStrings.homeWelcome,
+                                    style: AppTextStyles.body1.copyWith(
+                                      color: AppColors.textPrimary,
+                                    ),
+                                  ),
+                                  Text(
+                                    profileName,
+                                    style: AppTextStyles.body3.copyWith(
+                                      color: AppColors.textSecondary,
+                                    ),
+                                  ),
+                                ],
                               ),
-                              Text(
-                                profileName,
-                                style: AppTextStyles.body3.copyWith(
-                                  color: AppColors.textSecondary,
-                                ),
-                              ),
-                            ],
+                            ),
+                          ],
+                        ),
+                        Gaps.hLg,
+                        Text(
+                          totalText,
+                          style: AppTextStyles.header2.copyWith(
+                            color: AppColors.textPrimary,
                           ),
+                        ),
+                        Gaps.hMd,
+                        Text(
+                          AppStrings.homeTotalBudgetLabel,
+                          style: AppTextStyles.body3.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                        Gaps.hMd,
+                        _DetailsButton(
+                          onPressed: () => Navigator.of(context).pushNamed(
+                            AppRoutes.participantsBalance,
+                          ),
+                        ),
+                        Gaps.hLg,
+                        _QuickActionsCard(
+                          onAddIncome: () => _openAddIncome(context, state),
+                          onAddExpenses: () => _openAddExpenses(context, state),
+                          onAddParticipant: () => _openAddParticipant(context),
                         ),
                       ],
                     ),
-                    Gaps.hLg,
-                    Text(
-                      totalText,
-                      style: AppTextStyles.header2.copyWith(
-                        color: AppColors.textPrimary,
-                      ),
-                    ),
-                    Gaps.hMd,
-                    Text(
-                      AppStrings.homeTotalBudgetLabel,
-                      style: AppTextStyles.body3.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                    Gaps.hMd,
-                    _DetailsButton(
-                      onPressed: () => Navigator.of(context).pushNamed(
-                        AppRoutes.participantsBalance,
-                      ),
-                    ),
-                    Gaps.hMd,
-                    Gaps.hMd,
-                    _QuickActionsCard(
-                      onAddIncome: () => _openAddIncome(context, state),
-                      onAddExpenses: () => _openAddExpenses(context, state),
-                      onAddParticipant: () => _openAddParticipant(context),
-                    ),
-                    Gaps.hLg,
-                    Expanded(
-                      child: _TransactionsSection(
-                        participants: state.participants,
-                        transactions: state.transactions,
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
+              ],
+            ),
+            Expanded(
+              child: _TransactionsSection(
+                participants: state.participants,
+                transactions: state.transactions,
               ),
             ),
           ],
@@ -231,7 +230,8 @@ class _DetailsButton extends StatelessWidget {
     return AppPrimaryButton(
       label: AppStrings.homeDetails,
       onPressed: onPressed,
-      width: 160,
+      width: 100,
+      height: 36,
       backgroundColor: AppColors.layerPrimary,
       foregroundColor: AppColors.textSecondary,
     );
@@ -264,7 +264,7 @@ class _QuickActionsCard extends StatelessWidget {
         ],
       ),
       child: Padding(
-        padding: Insets.allLg,
+        padding: Insets.allMd,
         child: Row(
           children: [
             Expanded(
@@ -359,13 +359,10 @@ class _TransactionsSection extends StatelessWidget {
   Widget build(BuildContext context) {
     if (transactions.isEmpty) {
       return Center(
-        child: Padding(
-          padding: Insets.allLg,
-          child: Text(
-            AppStrings.homeEmptyState,
-            style: AppTextStyles.body3.copyWith(color: AppColors.textGray),
-            textAlign: TextAlign.center,
-          ),
+        child: Text(
+          AppStrings.homeEmptyState,
+          style: AppTextStyles.body3.copyWith(color: AppColors.textGray),
+          textAlign: TextAlign.center,
         ),
       );
     }
@@ -375,9 +372,9 @@ class _TransactionsSection extends StatelessWidget {
     };
 
     return ListView.separated(
-      padding: Insets.allLg,
+      padding: EdgeInsets.zero,
       itemCount: transactions.length,
-      separatorBuilder: (_, __) => Gaps.hSm,
+      separatorBuilder: (_, __) => Gaps.hXs,
       itemBuilder: (context, index) {
         final tx = transactions[index];
         final participant = participantById[tx.participantId];
@@ -400,50 +397,52 @@ class _TransactionsSection extends StatelessWidget {
               color: AppColors.layerPrimary,
               borderRadius: AppRadius.lg,
             ),
-            child: Padding(
-              padding: Insets.allMd,
-              child: Row(
-                children: [
-                  CircleAvatar(
-                    radius: AppSizes.avatarRadius,
-                    backgroundColor: AppColors.layerSecondary,
-                    backgroundImage: (participant?.photoPath == null)
-                        ? null
-                        : FileImage(File(participant!.photoPath!)),
-                    child: (participant?.photoPath == null)
-                        ? SvgPicture.asset(
-                            AppIcons.userAvatarPlaceholder,
-                            width: AppSizes.avatarIconSize,
-                            height: AppSizes.avatarIconSize,
-                          )
-                        : null,
-                  ),
-                  Gaps.wMd,
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          name,
-                          style: AppTextStyles.body1.copyWith(
-                            color: AppColors.textSecondary,
-                          ),
+            padding: const EdgeInsets.symmetric(
+              vertical: AppSpacing.sm,
+            ),
+            child: Row(
+              children: [
+                Gaps.wMd,
+                CircleAvatar(
+                  radius: 28,
+                  backgroundColor: AppColors.layerSecondary,
+                  backgroundImage: (participant?.photoPath == null)
+                      ? null
+                      : FileImage(File(participant!.photoPath!)),
+                  child: (participant?.photoPath == null)
+                      ? SvgPicture.asset(
+                          AppIcons.userAvatarPlaceholder,
+                          width: AppSizes.avatarIconSize,
+                          height: AppSizes.avatarIconSize,
+                        )
+                      : null,
+                ),
+                Gaps.wMd,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        name,
+                        style: AppTextStyles.body3.copyWith(
+                          color: AppColors.textSecondary,
                         ),
-                        Text(
-                          dateText,
-                          style: AppTextStyles.body3.copyWith(
-                            color: AppColors.textGray,
-                          ),
+                      ),
+                      Text(
+                        dateText,
+                        style: AppTextStyles.body4.copyWith(
+                          color: AppColors.textGray,
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
-                  Text(
-                    amountText,
-                    style: AppTextStyles.body1.copyWith(color: amountColor),
-                  ),
-                ],
-              ),
+                ),
+                Text(
+                  amountText,
+                  style: AppTextStyles.body3.copyWith(color: amountColor),
+                ),
+                Gaps.wMd,
+              ],
             ),
           ),
         );

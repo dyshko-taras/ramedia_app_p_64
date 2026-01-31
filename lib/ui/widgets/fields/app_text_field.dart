@@ -14,6 +14,7 @@ class AppTextField extends StatelessWidget {
     this.onChanged,
     this.validator,
     this.suffixIcon,
+    this.textStyle,
     this.autofocus = false,
     this.obscureText = false,
     this.enabled = true,
@@ -29,6 +30,7 @@ class AppTextField extends StatelessWidget {
   final ValueChanged<String>? onChanged;
   final String? Function(String value)? validator;
   final Widget? suffixIcon;
+  final TextStyle? textStyle;
   final bool autofocus;
   final bool obscureText;
   final bool enabled;
@@ -39,7 +41,7 @@ class AppTextField extends StatelessWidget {
   Widget build(BuildContext context) {
     return TextFormField(
       controller: controller,
-      style: AppTextStyles.input,
+      style: textStyle ?? AppTextStyles.input,
       autofocus: autofocus,
       enabled: enabled,
       obscureText: obscureText,

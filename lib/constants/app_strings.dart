@@ -55,9 +55,9 @@ abstract final class AppStrings {
   static const homeUserNamePlaceholder = 'Name';
   static const homeTotalBudgetLabel = 'Total budget amount';
   static const homeDetails = 'Details';
-  static const homeQuickAddIncome = 'Add income';
-  static const homeQuickAddExpenses = 'Add expenses';
-  static const homeQuickAddParticipant = 'Add participant';
+  static const homeQuickAddIncome = 'Add\nincome';
+  static const homeQuickAddExpenses = 'Add\nexpenses';
+  static const homeQuickAddParticipant = 'Add\nparticipant';
   static const homeEmptyState =
       'No new records have been entered yet, you can create a new record.';
 
@@ -73,6 +73,8 @@ abstract final class AppStrings {
   static const addExpensesAmountPlaceholder = 'Amount';
   static const addExpensesSplitTransactionLabel = 'Split transaction?';
   static const addExpensesEnterPercentagePlaceholder = 'Enter percentage';
+  static const addExpensesRemainingPercent = 'Remaining: {percent}%';
+  static const addExpensesPayerPercent = 'Payer: {percent}%';
   static const addExpensesPaymentScheduleLabel = 'Payment schedule, date';
 
   static const transactionExceedsBalance =
@@ -121,4 +123,3 @@ abstract final class AppStrings {
   static const noInternetSubtitle = 'Try again later';
   static const noInternetCheckConnection = 'Check connection';
 }
-
