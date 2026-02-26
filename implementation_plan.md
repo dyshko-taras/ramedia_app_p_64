@@ -35,7 +35,6 @@
 - [x] Додати `MainShellCubit` + `MainShellState` (керування активною вкладкою та навігаційними подіями).
 - [x] Підключити routes так, щоб `/home`, `/credit`, `/settings` відкривали `MainShellPage(initialIndex: ...)`.
 - [x] Додати “non-tab” routes (Splash, Onboarding step 1/2, Participants Balance, No Internet) як окремі сторінки.
-- [ ] Впровадити “back button rules” (ігнорувати Android system back там, де потрібно за `info/technical_spec.md`).
 
 ## Phase 3 — Assets & UI Building Blocks
 
@@ -94,22 +93,22 @@
 
 ## Phase 9 — Participants Balance
 
-- [ ] `ParticipantsBalancePage` + `ParticipantsBalanceCubit` + `ParticipantsBalanceState` (UI + логіка) + empty state.
-- [ ] Розрахунок “хто кому винен” на базі локальних транзакцій.
+- [x] `ParticipantsBalancePage` + `ParticipantsBalanceCubit` + `ParticipantsBalanceState` (UI + логіка) + empty state.
+- [x] Розрахунок “хто кому винен” на базі локальних транзакцій.
 
 ## Phase 10 — Credit Calculator
 
-- [ ] `CreditPage` + `CreditCubit` + `CreditState` (pure UI + calculation logic, без впливу на Home/participants).
-- [ ] Валідації та edge cases (0% rate, нульові/великі значення, округлення до 2 знаків).
+- [x] `CreditPage` + `CreditCubit` + `CreditState` (pure UI + calculation logic, без впливу на Home/participants).
+- [x] Валідації та edge cases (0% rate, нульові/великі значення, округлення до 2 знаків).
 
 ## Phase 11 — Settings
 
-- [ ] `SettingsPage` + `SettingsCubit` + `SettingsState` (UI + логіка).
-- [ ] Notifications: перший тап → permission, наступні → системні налаштування (як в tech spec).
-- [ ] Privacy Policy: `url_launcher`.
-- [ ] Share Application: `share_plus`.
-- [ ] Clear Data: confirm dialog → повне очищення → редірект в Onboarding.
-- [ ] Винести Privacy+Share в “shared logic file” і створити `settings-path.txt` з шляхом до цього файлу (як в tech spec).
+- [x] `SettingsPage` + `SettingsCubit` + `SettingsState` (UI + логіка).
+- [x] Notifications: перший тап → permission, наступні → системні налаштування (як в tech spec).
+- [x] Privacy Policy: `url_launcher`.
+- [x] Share Application: `share_plus`.
+- [x] Clear Data: confirm dialog → повне очищення → редірект в Onboarding.
+- [x] Винести Privacy+Share в “shared logic file” і створити `settings-path.txt` з шляхом до цього файлу (як в tech spec).
 
 ## Phase 12 — No Internet Screen + Connectivity
 
