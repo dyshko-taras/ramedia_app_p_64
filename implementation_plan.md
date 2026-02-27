@@ -112,8 +112,8 @@
 
 ## Phase 12 — No Internet Screen + Connectivity
 
-- [ ] `NoInternetPage` + `NoInternetCubit` + `NoInternetState` (full-screen) з кнопкою “Check connection”.
-- [ ] Мінімальна перевірка підключення (за потреби додамо пакет) і повернення в попередній flow.
+- [x] `NoInternetPage` (full-screen) + dialog-card UI з кнопкою “Check connection”.
+- [x] Мінімальна перевірка підключення (без додаткових пакетів) і закриття діалогу при відновленні звʼязку.
 
 ## Phase 13 — Polish & Consistency Pass
 

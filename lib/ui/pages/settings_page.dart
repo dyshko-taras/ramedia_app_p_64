@@ -139,7 +139,10 @@ class _SettingsView extends StatelessWidget {
                   Gaps.hMd,
                   _SettingsItem(
                     label: AppStrings.settingsPrivacyPolicy,
-                    onTap: () => openPrivacyPolicy(AppLinks.privacyPolicy),
+                    onTap: () => openPrivacyPolicy(
+                      context: context,
+                      url: AppLinks.privacyPolicy,
+                    ),
                   ),
                   Gaps.hMd,
                   _SettingsItem(
