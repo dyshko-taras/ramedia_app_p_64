@@ -20,12 +20,19 @@ class SettingsRepository {
       _prefs.setSelectedCurrencyCode(code);
 
   static const _keyPushPermissionRequested = 'push_permission_requested';
+  static const _keyDailyReminderEnabled = 'daily_reminder_enabled';
 
   bool getPushPermissionRequested() =>
       _prefs.getBool(_keyPushPermissionRequested) ?? false;
 
   Future<void> setPushPermissionRequested(bool value) =>
       _prefs.setBool(_keyPushPermissionRequested, value);
+
+  bool getDailyReminderEnabled() =>
+      _prefs.getBool(_keyDailyReminderEnabled) ?? false;
+
+  Future<void> setDailyReminderEnabled(bool value) =>
+      _prefs.setBool(_keyDailyReminderEnabled, value);
 
   Future<void> clearAllData() async {
     await _prefs.clearAll();

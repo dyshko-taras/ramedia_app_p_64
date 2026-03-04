@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -8,6 +10,7 @@ import 'data/repositories/participants_repository.dart';
 import 'data/repositories/profile_repository.dart';
 import 'data/repositories/settings_repository.dart';
 import 'data/repositories/transactions_repository.dart';
+import 'services/notifications_service.dart';
 import 'ui/theme/app_theme.dart';
 
 class AppBootstrap extends StatelessWidget {
@@ -27,6 +30,12 @@ class AppBootstrap extends StatelessWidget {
         if (repos == null) {
           return const _BootstrapLoadingApp();
         }
+
+        unawaited(
+          NotificationsService.instance.syncDailyReminderOnLaunch(
+            settingsRepository: repos.settings,
+          ),
+        );
 
         return MultiRepositoryProvider(
           providers: [
@@ -85,4 +94,3 @@ class _BootstrapLoadingView extends StatelessWidget {
     );
   }
 }
-

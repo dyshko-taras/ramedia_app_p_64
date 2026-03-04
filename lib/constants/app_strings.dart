@@ -106,6 +106,15 @@ abstract final class AppStrings {
   static const creditCalculatorInterestRateLabel = 'Interest Rate, %';
   static const creditCalculatorCalculate = 'Calculate';
 
+  // Daily reminder notification
+  static const dailyReminderTitle = 'Reminder';
+  static const dailyReminderBody = 'Open the app and check your budget today.';
+
+  // Settings - test notifications
+  static const settingsTestNotification = 'Test notification';
+  static const testNotificationTitle = 'Test';
+  static const testNotificationBody = 'This is a test notification.';
+
   // Settings
   static const settingsTitle = 'Settings';
   static const settingsUserNamePlaceholder = 'User Name';

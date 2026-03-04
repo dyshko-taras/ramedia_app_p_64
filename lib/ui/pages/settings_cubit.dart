@@ -57,5 +57,8 @@ class SettingsCubit extends Cubit<SettingsState> {
   Future<void> setPushPermissionRequested(bool value) =>
       _settingsRepository.setPushPermissionRequested(value);
 
+  Future<void> setDailyReminderEnabled(bool value) =>
+      _settingsRepository.setDailyReminderEnabled(value);
+
   Future<void> clearAllData() => _settingsRepository.clearAllData();
 }

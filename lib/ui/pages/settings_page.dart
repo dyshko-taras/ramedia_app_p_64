@@ -11,12 +11,14 @@ import '../../constants/app_icons.dart';
 import '../../constants/app_links.dart';
 import '../../constants/app_radius.dart';
 import '../../constants/app_routes.dart';
+import '../../constants/app_sizes.dart';
 import '../../constants/app_spacing.dart';
 import '../../constants/app_strings.dart';
 import '../../data/models/user_profile.dart';
 import '../../data/repositories/participants_repository.dart';
 import '../../data/repositories/profile_repository.dart';
 import '../../data/repositories/settings_repository.dart';
+import '../../services/notifications_service.dart';
 import '../settings_actions.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
@@ -69,11 +71,21 @@ class _SettingsView extends StatelessWidget {
 
     if (!requested) {
       await cubit.setPushPermissionRequested(true);
-      final status = await Permission.notification.request();
-      if (status.isGranted) return;
+      final ok = await NotificationsService.instance.requestPermission();
+      if (ok) {
+        await cubit.setDailyReminderEnabled(true);
+        await NotificationsService.instance.scheduleDailyReminder();
+      }
+      return;
     }
 
     await openAppSettings();
+
+    final ok = await NotificationsService.instance.hasPermission();
+    if (ok) {
+      await cubit.setDailyReminderEnabled(true);
+      await NotificationsService.instance.scheduleDailyReminder();
+    }
   }
 
   Future<void> _handleClearData(BuildContext context) async {
@@ -113,49 +125,59 @@ class _SettingsView extends StatelessWidget {
           builder: (context, state) {
             final profile = state.profile;
 
-            return Padding(
+            if (state.isLoading) {
+              return const Center(
+                child: SizedBox(
+                  height: AppSizes.loadingIndicatorSize,
+                  width: AppSizes.loadingIndicatorSize,
+                  child: CircularProgressIndicator(
+                    strokeWidth: AppSizes.loadingIndicatorStrokeWidth,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              );
+            }
+
+            return ListView(
               padding: Insets.allLg,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Center(
-                    child: Text(
-                      AppStrings.settingsTitle,
-                      style: AppTextStyles.header1.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
+              children: [
+                Center(
+                  child: Text(
+                    AppStrings.settingsTitle,
+                    style: AppTextStyles.body2.copyWith(
+                      color: AppColors.textSecondary,
                     ),
                   ),
-                  Gaps.hXl,
-                  _ProfileRow(
-                    profile: profile,
-                    onEdit: () => _editProfile(context, profile),
+                ),
+                Gaps.hXl,
+                _ProfileRow(
+                  profile: profile,
+                  onEdit: () => _editProfile(context, profile),
+                ),
+                Gaps.hXl,
+                _SettingsItem(
+                  label: AppStrings.settingsNotifications,
+                  onTap: () => _handleNotificationsTap(context),
+                ),
+                Gaps.hMd,
+                _SettingsItem(
+                  label: AppStrings.settingsPrivacyPolicy,
+                  onTap: () => openPrivacyPolicy(
+                    context: context,
+                    url: AppLinks.privacyPolicy,
                   ),
-                  Gaps.hXl,
-                  _SettingsItem(
-                    label: AppStrings.settingsNotifications,
-                    onTap: () => _handleNotificationsTap(context),
-                  ),
-                  Gaps.hMd,
-                  _SettingsItem(
-                    label: AppStrings.settingsPrivacyPolicy,
-                    onTap: () => openPrivacyPolicy(
-                      context: context,
-                      url: AppLinks.privacyPolicy,
-                    ),
-                  ),
-                  Gaps.hMd,
-                  _SettingsItem(
-                    label: AppStrings.settingsShareApplication,
-                    onTap: () => shareApplication(AppLinks.appShare),
-                  ),
-                  Gaps.hMd,
-                  _SettingsItem(
-                    label: AppStrings.settingsClearData,
-                    onTap: () => _handleClearData(context),
-                  ),
-                ],
-              ),
+                ),
+                Gaps.hMd,
+                _SettingsItem(
+                  label: AppStrings.settingsShareApplication,
+                  onTap: () => shareApplication(AppLinks.appShare),
+                ),
+                Gaps.hMd,
+                _SettingsItem(
+                  label: AppStrings.settingsClearData,
+                  onTap: () => _handleClearData(context),
+                ),
+              ],
             );
           },
         ),
@@ -222,7 +244,7 @@ class _ProfileRow extends StatelessWidget {
             children: [
               Text(
                 name,
-                style: AppTextStyles.body2.copyWith(
+                style: AppTextStyles.body3.copyWith(
                   color: AppColors.textSecondary,
                 ),
               ),
@@ -230,7 +252,7 @@ class _ProfileRow extends StatelessWidget {
                 Gaps.hXs,
                 Text(
                   sinceText,
-                  style: AppTextStyles.body3.copyWith(
+                  style: AppTextStyles.body4.copyWith(
                     color: AppColors.textGray,
                   ),
                 ),
@@ -283,7 +305,7 @@ class _SettingsItem extends StatelessWidget {
               Expanded(
                 child: Text(
                   label,
-                  style: AppTextStyles.body2.copyWith(
+                  style: AppTextStyles.body3.copyWith(
                     color: AppColors.textSecondary,
                   ),
                 ),

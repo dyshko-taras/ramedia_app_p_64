@@ -5,9 +5,12 @@ import 'package:flutter/services.dart';
 
 import 'app.dart';
 import 'app_bootstrap.dart';
+import 'services/notifications_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  await NotificationsService.instance.initialize();
 
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
