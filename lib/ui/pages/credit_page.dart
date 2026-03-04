@@ -39,7 +39,7 @@ class _CreditView extends StatelessWidget {
                   child: Center(
                     child: Text(
                       AppStrings.creditCalculatorTitle,
-                      style: AppTextStyles.header1.copyWith(
+                      style: AppTextStyles.body1.copyWith(
                         color: AppColors.textSecondary,
                       ),
                     ),
@@ -163,9 +163,8 @@ class _SummaryCard extends StatelessWidget {
           children: [
             Text(
               creditAmountText,
-              style: AppTextStyles.header2.copyWith(
+              style: AppTextStyles.header1.copyWith(
                 color: AppColors.textSecondary,
-                height: 0.8,
               ),
             ),
             Gaps.hSm,
@@ -206,12 +205,12 @@ class _SummaryRow extends StatelessWidget {
         Expanded(
           child: Text(
             label,
-            style: AppTextStyles.body1.copyWith(color: AppColors.textGray),
+            style: AppTextStyles.body3.copyWith(color: AppColors.textGray),
           ),
         ),
         Text(
           value,
-          style: AppTextStyles.body1.copyWith(color: AppColors.textSecondary),
+          style: AppTextStyles.body3.copyWith(color: AppColors.textSecondary),
         ),
       ],
     );
@@ -242,14 +241,14 @@ class _SliderSection extends StatelessWidget {
             Expanded(
               child: Text(
                 title,
-                style: AppTextStyles.body2.copyWith(
+                style: AppTextStyles.body3.copyWith(
                   color: AppColors.textSecondary,
                 ),
               ),
             ),
             Text(
               valueText,
-              style: AppTextStyles.header1.copyWith(
+              style: AppTextStyles.body1.copyWith(
                 color: AppColors.textSecondary,
               ),
             ),
@@ -263,14 +262,14 @@ class _SliderSection extends StatelessWidget {
             children: [
               Text(
                 minLabel,
-                style: AppTextStyles.body3.copyWith(
+                style: AppTextStyles.body4.copyWith(
                   color: AppColors.textSecondary,
                 ),
               ),
               const Spacer(),
               Text(
                 maxLabel,
-                style: AppTextStyles.body3.copyWith(
+                style: AppTextStyles.body4.copyWith(
                   color: AppColors.textSecondary,
                 ),
               ),
