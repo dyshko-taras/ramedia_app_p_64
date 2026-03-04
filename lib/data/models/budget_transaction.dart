@@ -17,6 +17,8 @@ class BudgetTransaction extends Equatable {
     required this.scheduledAt,
     this.isSplit = false,
     this.splitMinorByParticipantId,
+    this.borrowFromParticipantId,
+    this.borrowedMinor,
   });
 
   final String id;
@@ -29,6 +31,16 @@ class BudgetTransaction extends Equatable {
   final bool isSplit;
   final Map<String, int>? splitMinorByParticipantId;
 
+  /// When an expense exceeds the payer balance, the missing amount can be
+  /// covered by another participant. This represents "who the payer borrowed
+  /// from" and how much is owed (in minor units).
+  ///
+  /// Note: balances are still computed from `splitMinorByParticipantId`, while
+  /// debts UI uses these fields to show "owes" even when net balances don't go
+  /// negative.
+  final String? borrowFromParticipantId;
+  final int? borrowedMinor;
+
   Map<String, Object?> toMap() => {
         'id': id,
         'type': type.name,
@@ -38,6 +50,8 @@ class BudgetTransaction extends Equatable {
         'scheduledAt': scheduledAt.toIso8601String(),
         'isSplit': isSplit,
         'splitMinorByParticipantId': splitMinorByParticipantId,
+        'borrowFromParticipantId': borrowFromParticipantId,
+        'borrowedMinor': borrowedMinor,
       };
 
   static BudgetTransaction fromMap(Map<Object?, Object?> map) {
@@ -56,6 +70,8 @@ class BudgetTransaction extends Equatable {
       isSplit: (map['isSplit'] as bool?) ?? false,
       splitMinorByParticipantId:
           (map['splitMinorByParticipantId'] as Map?)?.cast<String, int>(),
+      borrowFromParticipantId: map['borrowFromParticipantId'] as String?,
+      borrowedMinor: map['borrowedMinor'] as int?,
     );
   }
 
@@ -69,6 +85,7 @@ class BudgetTransaction extends Equatable {
         scheduledAt,
         isSplit,
         splitMinorByParticipantId,
+        borrowFromParticipantId,
+        borrowedMinor,
       ];
 }
-

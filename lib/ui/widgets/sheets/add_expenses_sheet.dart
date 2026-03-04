@@ -28,6 +28,8 @@ class AddExpensesResult {
     this.splitMinorByParticipantIdOverride,
     this.splitWithParticipantId,
     this.splitPercent,
+    this.borrowFromParticipantId,
+    this.borrowedCents,
   });
 
   final String participantId;
@@ -37,6 +39,8 @@ class AddExpensesResult {
   final Map<String, int>? splitMinorByParticipantIdOverride;
   final String? splitWithParticipantId;
   final int? splitPercent;
+  final String? borrowFromParticipantId;
+  final int? borrowedCents;
 }
 
 Future<AddExpensesResult?> showAddExpensesSheet({
@@ -75,6 +79,7 @@ class _AddExpensesSheetState extends State<_AddExpensesSheet> {
 
   List<Participant> _participants = const [];
   String? _selectedParticipantId;
+  String? _splitPayerId;
   DateTime _scheduledAt = DateTime.now();
   bool _isSplit = false;
   final Map<String, TextEditingController> _splitPercentControllersById = {};
@@ -147,15 +152,27 @@ class _AddExpensesSheetState extends State<_AddExpensesSheet> {
     final participantById = {
       for (final p in _participants) p.id: p,
     };
-    final splitOtherPercentTotalRaw = _splitPercentControllersById.values.fold(
-      0,
-      (sum, c) => sum + (int.tryParse(c.text.trim()) ?? 0).clamp(0, 100),
-    );
-    final splitIsOver100 = splitOtherPercentTotalRaw > 100;
-    final splitPayerPercentRaw = (100 - splitOtherPercentTotalRaw).clamp(
-      0,
-      100,
-    );
+    final splitPayerPercentRaw = selectedParticipantId == null
+        ? 0
+        : int.tryParse(
+                _splitPercentControllersById[selectedParticipantId]?.text
+                        .trim() ??
+                    '',
+              ) ??
+              0;
+    final splitOthersPercentTotalRaw = _splitPercentControllersById.entries
+        .fold(
+          0,
+          (sum, entry) {
+            if (entry.key == selectedParticipantId) return sum;
+            return sum + (int.tryParse(entry.value.text.trim()) ?? 0);
+          },
+        );
+    final splitPercentTotalRaw =
+        splitPayerPercentRaw + splitOthersPercentTotalRaw;
+    final splitIsOver100 = splitPercentTotalRaw > 100;
+    final splitRemainingPercentRaw = (100 - splitPercentTotalRaw).clamp(0, 100);
+    final splitInputIds = _buildSplitInputIds(selectedParticipantId);
 
     return GestureDetector(
       onTap: () => FocusScope.of(context).unfocus(),
@@ -166,297 +183,329 @@ class _AddExpensesSheetState extends State<_AddExpensesSheet> {
           padding: EdgeInsets.only(bottom: bottomInset),
           child: SafeArea(
             top: false,
-            child: SingleChildScrollView(
-              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-              padding: const EdgeInsets.only(bottom: AppSpacing.lg),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Padding(
-                    padding: Insets.allLg,
-                    child: Row(
-                      children: [
-                        const Spacer(),
-                        Text(
-                          AppStrings.addExpensesTitle,
-                          style: Theme.of(context).textTheme.titleMedium,
-                        ),
-                        const Spacer(),
-                        IconButton(
-                          onPressed: () => Navigator.of(context).pop(),
-                          icon: const Icon(Icons.close),
-                        ),
-                      ],
+            child: ScrollConfiguration(
+              behavior: const _NoStretchScrollBehavior(),
+              child: SingleChildScrollView(
+                keyboardDismissBehavior:
+                    ScrollViewKeyboardDismissBehavior.onDrag,
+                padding: const EdgeInsets.only(bottom: AppSpacing.lg),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Padding(
+                      padding: Insets.allLg,
+                      child: Row(
+                        children: [
+                          const Spacer(),
+                          Text(
+                            AppStrings.addExpensesTitle,
+                            style: Theme.of(context).textTheme.titleMedium,
+                          ),
+                          const Spacer(),
+                          IconButton(
+                            onPressed: () => Navigator.of(context).pop(),
+                            icon: const Icon(Icons.close),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                  const Divider(height: 1),
-                  Padding(
-                    padding: Insets.allLg,
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Align(
-                          alignment: Alignment.centerLeft,
-                          child: Text(
-                            AppStrings.addExpensesWhoIsSpending,
-                            style: AppTextStyles.body1.copyWith(
-                              color: AppColors.textGray,
-                            ),
-                          ),
-                        ),
-                        Gaps.hMd,
-                        if (_participants.isEmpty)
-                          SizedBox(
-                            width: double.infinity,
-                            child: AppPrimaryButton(
-                              label: AppStrings.addExpensesAddParticipant,
-                              onPressed: _addParticipant,
-                              backgroundColor: AppColors.accentSecondary,
-                              foregroundColor: AppColors.textPrimary,
-                            ),
-                          )
-                        else
-                          SizedBox(
-                            height: AppSizes.buttonHeight,
-                            child: ListView.separated(
-                              scrollDirection: Axis.horizontal,
-                              itemCount: _participants.length,
-                              separatorBuilder: (_, __) => const SizedBox(
-                                width: AppSpacing.md,
-                              ),
-                              itemBuilder: (context, index) {
-                                final p = _participants[index];
-                                return _ChoicePill(
-                                  label: p.name,
-                                  isSelected: _selectedParticipantId == p.id,
-                                  onTap: () => setState(
-                                    () => _selectedParticipantId = p.id,
-                                  ),
-                                );
-                              },
-                            ),
-                          ),
-                        Gaps.hLg,
-                        Row(
-                          children: [
-                            Expanded(
-                              child: AppTextField(
-                                controller: _amountController,
-                                hintText:
-                                    AppStrings.addExpensesAmountPlaceholder,
-                                keyboardType: TextInputType.number,
-                                textStyle: isBorrowFlow
-                                    ? AppTextStyles.input.copyWith(
-                                        color: AppColors.layerError,
-                                      )
-                                    : null,
-                                onChanged: (_) => setState(() {}),
-                              ),
-                            ),
-                            Gaps.wMd,
-                            AppCurrencyPill(currencyCode: _currencyCode),
-                          ],
-                        ),
-                        if (isBorrowFlow) ...[
-                          Gaps.hSm,
+                    const Divider(height: 1),
+                    Padding(
+                      padding: Insets.allLg,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
                           Align(
                             alignment: Alignment.centerLeft,
                             child: Text(
-                              AppStrings.transactionExceedsBalance.replaceFirst(
-                                '{amount}',
-                                _formatMoney(missingCents),
-                              ),
-                              style: AppTextStyles.body3.copyWith(
-                                color: AppColors.layerError,
-                              ),
-                            ),
-                          ),
-                          Gaps.hSm,
-                          Align(
-                            alignment: Alignment.centerLeft,
-                            child: Text(
-                              AppStrings.transactionBorrowMissingAmount,
+                              AppStrings.addExpensesWhoIsSpending,
                               style: AppTextStyles.body1.copyWith(
                                 color: AppColors.textGray,
                               ),
                             ),
                           ),
                           Gaps.hMd,
-                          if (eligibleBorrowers.isNotEmpty)
+                          if (_participants.isEmpty)
+                            SizedBox(
+                              width: double.infinity,
+                              child: AppPrimaryButton(
+                                label: AppStrings.addExpensesAddParticipant,
+                                onPressed: _addParticipant,
+                                backgroundColor: AppColors.accentSecondary,
+                                foregroundColor: AppColors.textPrimary,
+                              ),
+                            )
+                          else
                             SizedBox(
                               height: AppSizes.buttonHeight,
                               child: ListView.separated(
                                 scrollDirection: Axis.horizontal,
-                                itemCount: eligibleBorrowers.length,
+                                itemCount: _participants.length,
                                 separatorBuilder: (_, __) => const SizedBox(
                                   width: AppSpacing.md,
                                 ),
                                 itemBuilder: (context, index) {
-                                  final p = eligibleBorrowers[index];
+                                  final p = _participants[index];
                                   return _ChoicePill(
                                     label: p.name,
-                                    isSelected:
-                                        _borrowFromParticipantId == p.id,
-                                    onTap: () => setState(
-                                      () => _borrowFromParticipantId = p.id,
-                                    ),
+                                    isSelected: _selectedParticipantId == p.id,
+                                    onTap: () => setState(() {
+                                      if (_selectedParticipantId == p.id)
+                                        return;
+                                      _selectedParticipantId = p.id;
+                                      _borrowFromParticipantId = null;
+
+                                      if (!_isSplit) return;
+                                      _resetSplitControllers();
+                                      _ensureSplitPayerController(p.id);
+                                    }),
                                   );
                                 },
                               ),
-                            )
-                          else
+                            ),
+                          Gaps.hLg,
+                          Row(
+                            children: [
+                              Expanded(
+                                child: AppTextField(
+                                  controller: _amountController,
+                                  hintText:
+                                      AppStrings.addExpensesAmountPlaceholder,
+                                  keyboardType: TextInputType.number,
+                                  textStyle: isBorrowFlow
+                                      ? AppTextStyles.input.copyWith(
+                                          color: AppColors.layerError,
+                                        )
+                                      : null,
+                                  onChanged: (_) => setState(() {}),
+                                ),
+                              ),
+                              Gaps.wMd,
+                              AppCurrencyPill(currencyCode: _currencyCode),
+                            ],
+                          ),
+                          if (isBorrowFlow) ...[
+                            Gaps.hSm,
                             Align(
                               alignment: Alignment.centerLeft,
                               child: Text(
-                                AppStrings.enterDifferentAmountMessage,
+                                AppStrings.transactionExceedsBalance
+                                    .replaceFirst(
+                                      '{amount}',
+                                      _formatMoney(missingCents),
+                                    ),
                                 style: AppTextStyles.body3.copyWith(
                                   color: AppColors.layerError,
                                 ),
                               ),
                             ),
-                        ],
-                        if (!isBorrowFlow) ...[
+                            Gaps.hSm,
+                            Align(
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                AppStrings.transactionBorrowMissingAmount,
+                                style: AppTextStyles.body1.copyWith(
+                                  color: AppColors.textGray,
+                                ),
+                              ),
+                            ),
+                            Gaps.hMd,
+                            if (eligibleBorrowers.isNotEmpty)
+                              SizedBox(
+                                height: AppSizes.buttonHeight,
+                                child: ListView.separated(
+                                  scrollDirection: Axis.horizontal,
+                                  itemCount: eligibleBorrowers.length,
+                                  separatorBuilder: (_, __) => const SizedBox(
+                                    width: AppSpacing.md,
+                                  ),
+                                  itemBuilder: (context, index) {
+                                    final p = eligibleBorrowers[index];
+                                    return _ChoicePill(
+                                      label: p.name,
+                                      isSelected:
+                                          _borrowFromParticipantId == p.id,
+                                      onTap: () => setState(
+                                        () => _borrowFromParticipantId = p.id,
+                                      ),
+                                    );
+                                  },
+                                ),
+                              )
+                            else
+                              Align(
+                                alignment: Alignment.centerLeft,
+                                child: Text(
+                                  AppStrings.enterDifferentAmountMessage,
+                                  style: AppTextStyles.body3.copyWith(
+                                    color: AppColors.layerError,
+                                  ),
+                                ),
+                              ),
+                          ],
+                          if (!isBorrowFlow) ...[
+                            Gaps.hLg,
+                            Align(
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                AppStrings.addExpensesSplitTransactionLabel,
+                                style: AppTextStyles.body1.copyWith(
+                                  color: AppColors.textGray,
+                                ),
+                              ),
+                            ),
+                            Gaps.hMd,
+                            Row(
+                              children: [
+                                _RadioChoice(
+                                  label: AppStrings.commonYes,
+                                  isSelected: _isSplit,
+                                  onTap: () => setState(() {
+                                    _isSplit = true;
+                                    _borrowFromParticipantId = null;
+                                    final payerId = _selectedParticipantId;
+                                    if (payerId == null) return;
+                                    _resetSplitControllers();
+                                    _ensureSplitPayerController(payerId);
+                                  }),
+                                ),
+                                Gaps.wXl,
+                                _RadioChoice(
+                                  label: AppStrings.commonNo,
+                                  isSelected: !_isSplit,
+                                  onTap: () => setState(() {
+                                    _isSplit = false;
+                                    _resetSplitControllers();
+                                  }),
+                                ),
+                              ],
+                            ),
+                            if (_isSplit) ...[
+                              Gaps.hLg,
+                              if (splitCandidates.isNotEmpty)
+                                SizedBox(
+                                  height: AppSizes.buttonHeight,
+                                  child: ListView.separated(
+                                    scrollDirection: Axis.horizontal,
+                                    itemCount: splitCandidates.length,
+                                    separatorBuilder: (_, __) => const SizedBox(
+                                      width: AppSpacing.md,
+                                    ),
+                                    itemBuilder: (context, index) {
+                                      final p = splitCandidates[index];
+                                      final isSelected =
+                                          _splitPercentControllersById
+                                              .containsKey(p.id);
+                                      return Stack(
+                                        clipBehavior: Clip.none,
+                                        children: [
+                                          _ChoicePill(
+                                            label: p.name,
+                                            isSelected: isSelected,
+                                            onTap: () => setState(() {
+                                              if (isSelected) {
+                                                _splitPercentControllersById
+                                                    .remove(p.id)
+                                                    ?.dispose();
+                                                return;
+                                              }
+                                              _splitPercentControllersById[p
+                                                      .id] =
+                                                  TextEditingController();
+                                            }),
+                                          ),
+                                          if (isSelected)
+                                            Positioned(
+                                              right: -6,
+                                              top: -6,
+                                              child: GestureDetector(
+                                                onTap: () => setState(() {
+                                                  _splitPercentControllersById
+                                                      .remove(p.id)
+                                                      ?.dispose();
+                                                }),
+                                                child: Container(
+                                                  height: 20,
+                                                  width: 20,
+                                                  decoration:
+                                                      const BoxDecoration(
+                                                        color: AppColors
+                                                            .layerPrimary,
+                                                        shape: BoxShape.circle,
+                                                      ),
+                                                  child: const Center(
+                                                    child: Icon(
+                                                      Icons.close,
+                                                      size: 14,
+                                                      color: AppColors
+                                                          .textSecondary,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                        ],
+                                      );
+                                    },
+                                  ),
+                                ),
+                              if (_splitPercentControllersById.isNotEmpty) ...[
+                                Gaps.hMd,
+                                for (final id in splitInputIds) ...[
+                                  _SplitRow(
+                                    participantName:
+                                        participantById[id]?.name ?? '—',
+                                    controller:
+                                        _splitPercentControllersById[id]!,
+                                    onChanged: () => setState(() {}),
+                                  ),
+                                  Gaps.hSm,
+                                ],
+                                Align(
+                                  alignment: Alignment.centerLeft,
+                                  child: Text(
+                                    AppStrings.addExpensesRemainingPercent
+                                        .replaceFirst(
+                                          '{percent}',
+                                          splitRemainingPercentRaw.toString(),
+                                        ),
+                                    style: AppTextStyles.body3.copyWith(
+                                      color: splitIsOver100
+                                          ? AppColors.layerError
+                                          : AppColors.textGray,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ],
                           Gaps.hLg,
                           Align(
                             alignment: Alignment.centerLeft,
                             child: Text(
-                              AppStrings.addExpensesSplitTransactionLabel,
+                              AppStrings.addExpensesPaymentScheduleLabel,
                               style: AppTextStyles.body1.copyWith(
                                 color: AppColors.textGray,
                               ),
                             ),
                           ),
-                          Gaps.hMd,
-                          Row(
-                            children: [
-                              _RadioChoice(
-                                label: AppStrings.commonYes,
-                                isSelected: _isSplit,
-                                onTap: () => setState(() {
-                                  _isSplit = true;
-                                  _borrowFromParticipantId = null;
-                                }),
-                              ),
-                              Gaps.wXl,
-                              _RadioChoice(
-                                label: AppStrings.commonNo,
-                                isSelected: !_isSplit,
-                                onTap: () => setState(() {
-                                  _isSplit = false;
-                                  for (final c
-                                      in _splitPercentControllersById.values) {
-                                    c.dispose();
-                                  }
-                                  _splitPercentControllersById.clear();
-                                }),
-                              ),
-                            ],
+                          Gaps.hSm,
+                          _DateField(
+                            label: _formatDate(_scheduledAt),
+                            onTap: () => unawaited(_pickDate()),
                           ),
-                          if (_isSplit) ...[
-                            Gaps.hLg,
-                            if (splitCandidates.isNotEmpty)
-                              SizedBox(
-                                height: AppSizes.buttonHeight,
-                                child: ListView.separated(
-                                  scrollDirection: Axis.horizontal,
-                                  itemCount: splitCandidates.length,
-                                  separatorBuilder: (_, __) => const SizedBox(
-                                    width: AppSpacing.md,
-                                  ),
-                                  itemBuilder: (context, index) {
-                                    final p = splitCandidates[index];
-                                    final isSelected =
-                                        _splitPercentControllersById
-                                            .containsKey(p.id);
-                                    return _ChoicePill(
-                                      label: p.name,
-                                      isSelected: isSelected,
-                                      onTap: () => setState(() {
-                                        if (isSelected) {
-                                          _splitPercentControllersById
-                                              .remove(p.id)
-                                              ?.dispose();
-                                          return;
-                                        }
-                                        _splitPercentControllersById[p.id] =
-                                            TextEditingController();
-                                      }),
-                                    );
-                                  },
-                                ),
-                              ),
-                            if (_splitPercentControllersById.isNotEmpty) ...[
-                              Gaps.hMd,
-                              for (final entry
-                                  in _splitPercentControllersById.entries) ...[
-                                _SplitRow(
-                                  participantName:
-                                      participantById[entry.key]?.name ?? '—',
-                                  controller: entry.value,
-                                  onChanged: () => setState(() {}),
-                                ),
-                                Gaps.hSm,
-                              ],
-                              Align(
-                                alignment: Alignment.centerLeft,
-                                child: Text(
-                                  AppStrings.addExpensesRemainingPercent
-                                      .replaceFirst(
-                                        '{percent}',
-                                        (100 - splitOtherPercentTotalRaw)
-                                            .toString(),
-                                      ),
-                                  style: AppTextStyles.body3.copyWith(
-                                    color: splitIsOver100
-                                        ? AppColors.layerError
-                                        : AppColors.textGray,
-                                  ),
-                                ),
-                              ),
-                              Align(
-                                alignment: Alignment.centerLeft,
-                                child: Text(
-                                  AppStrings.addExpensesPayerPercent
-                                      .replaceFirst(
-                                        '{percent}',
-                                        splitPayerPercentRaw.toString(),
-                                      ),
-                                  style: AppTextStyles.body3.copyWith(
-                                    color: splitIsOver100
-                                        ? AppColors.layerError
-                                        : AppColors.textGray,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ],
+                          Gaps.hXl,
+                          AppPrimaryButton(
+                            label: AppStrings.commonSave,
+                            onPressed: canSave ? _onSave : null,
+                            backgroundColor: AppColors.accentPrimary,
+                            foregroundColor: AppColors.textPrimary,
+                          ),
                         ],
-                        Gaps.hLg,
-                        Align(
-                          alignment: Alignment.centerLeft,
-                          child: Text(
-                            AppStrings.addExpensesPaymentScheduleLabel,
-                            style: AppTextStyles.body1.copyWith(
-                              color: AppColors.textGray,
-                            ),
-                          ),
-                        ),
-                        Gaps.hSm,
-                        _DateField(
-                          label: _formatDate(_scheduledAt),
-                          onTap: () => unawaited(_pickDate()),
-                        ),
-                        Gaps.hXl,
-                        AppPrimaryButton(
-                          label: AppStrings.commonSave,
-                          onPressed: canSave ? _onSave : null,
-                          backgroundColor: AppColors.accentPrimary,
-                          foregroundColor: AppColors.textPrimary,
-                        ),
-                      ],
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
@@ -494,6 +543,40 @@ class _AddExpensesSheetState extends State<_AddExpensesSheet> {
     await _refreshParticipants();
     if (!mounted) return;
     setState(() => _selectedParticipantId ??= participant.id);
+  }
+
+  void _resetSplitControllers() {
+    _splitPayerId = null;
+    for (final c in _splitPercentControllersById.values) {
+      c.dispose();
+    }
+    _splitPercentControllersById.clear();
+  }
+
+  void _ensureSplitPayerController(String payerId) {
+    if (_splitPayerId == payerId &&
+        _splitPercentControllersById.containsKey(payerId)) {
+      return;
+    }
+    _splitPayerId = payerId;
+    _splitPercentControllersById.putIfAbsent(
+      payerId,
+      () => TextEditingController(),
+    );
+  }
+
+  List<String> _buildSplitInputIds(String? payerId) {
+    if (!_isSplit) return const [];
+    if (payerId == null) return const [];
+    if (_splitPercentControllersById.isEmpty) return const [];
+    if (!_splitPercentControllersById.containsKey(payerId)) return const [];
+
+    final ids = <String>[payerId];
+    for (final id in _splitPercentControllersById.keys) {
+      if (id == payerId) continue;
+      ids.add(id);
+    }
+    return ids;
   }
 
   void _onSave() {
@@ -536,6 +619,8 @@ class _AddExpensesSheetState extends State<_AddExpensesSheet> {
             participantId: payerContribution,
             borrowerId: missingCents,
           },
+          borrowFromParticipantId: borrowerId,
+          borrowedCents: missingCents,
         ),
       );
       return;
@@ -583,40 +668,77 @@ class _AddExpensesSheetState extends State<_AddExpensesSheet> {
     if (payerId == null) return null;
     if (amountCents <= 0) return null;
     if (_splitPercentControllersById.isEmpty) return null;
+    if (!_splitPercentControllersById.containsKey(payerId)) return null;
+    if (_splitPercentControllersById.length < 2) return null;
 
     final percentsById = <String, int>{};
-    var othersPercentTotal = 0;
+
+    var othersTotal = 0;
     for (final entry in _splitPercentControllersById.entries) {
+      if (entry.key == payerId) continue;
       final raw = entry.value.text.trim();
       if (raw.isEmpty) return null;
       final value = int.tryParse(raw);
       if (value == null) return null;
       if (value <= 0 || value > 100) return null;
-      othersPercentTotal += value;
-      if (othersPercentTotal > 100) return null;
+      othersTotal += value;
+      if (othersTotal > 100) return null;
       percentsById[entry.key] = value;
     }
 
-    final payerPercent = 100 - othersPercentTotal;
-    if (payerPercent < 0) return null;
+    final payerRaw = _splitPercentControllersById[payerId]!.text.trim();
+    final payerPercent = payerRaw.isEmpty
+        ? (100 - othersTotal)
+        : int.tryParse(payerRaw) ?? -1;
+    if (payerPercent <= 0 || payerPercent > 100) return null;
 
-    final sharesByParticipantId = <String, int>{};
-    var othersSumMinor = 0;
-    for (final entry in percentsById.entries) {
-      final share = ((amountCents * entry.value) / 100).round();
-      sharesByParticipantId[entry.key] = share;
-      othersSumMinor += share;
-    }
+    final total = othersTotal + payerPercent;
+    if (total != 100) return null;
+    percentsById[payerId] = payerPercent;
 
-    final payerShare = amountCents - othersSumMinor;
-    if (payerShare < 0) return null;
-    sharesByParticipantId[payerId] = payerShare;
+    final sharesByParticipantId = _allocateSharesByPercent(
+      amountCents: amountCents,
+      percentsById: percentsById,
+    );
 
     return _SplitPlan(
       payerPercent: payerPercent,
-      othersPercentTotal: othersPercentTotal,
+      othersPercentTotal: 100 - payerPercent,
       sharesByParticipantId: sharesByParticipantId,
     );
+  }
+
+  Map<String, int> _allocateSharesByPercent({
+    required int amountCents,
+    required Map<String, int> percentsById,
+  }) {
+    final floors = <String, int>{};
+    final fractions = <String, double>{};
+
+    var sumFloors = 0;
+    for (final entry in percentsById.entries) {
+      final exact = (amountCents * entry.value) / 100.0;
+      final floor = exact.floor();
+      floors[entry.key] = floor;
+      fractions[entry.key] = exact - floor;
+      sumFloors += floor;
+    }
+
+    var remainder = amountCents - sumFloors;
+    final order = fractions.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+
+    final result = <String, int>{
+      for (final entry in floors.entries) entry.key: entry.value,
+    };
+
+    for (final entry in order) {
+      if (remainder <= 0) break;
+      result.update(entry.key, (v) => v + 1);
+      remainder -= 1;
+    }
+
+    return result;
   }
 
   Future<void> _showEnterDifferentAmountDialog() {
@@ -808,8 +930,9 @@ class _SplitRow extends StatelessWidget {
               widthFactor: 1,
               child: Text(
                 '%',
-                style: AppTextStyles.body1.copyWith(
+                style: AppTextStyles.body3.copyWith(
                   color: AppColors.textSecondary,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
             ),
@@ -863,22 +986,25 @@ class _DateField extends StatelessWidget {
                 ),
               ),
             ),
-            Container(
-              // height: AppSizes.buttonHeight,
-              width: AppSizes.buttonHeight,
-              padding: Insets.allLg,
-              decoration: const BoxDecoration(
-                color: AppColors.accentPrimary,
-                shape: BoxShape.circle,
-              ),
-              child: Center(
-                child: SvgPicture.asset(
-                  AppIcons.calendar,
-                  width: AppSizes.navIconSize,
-                  height: AppSizes.navIconSize,
-                  colorFilter: const ColorFilter.mode(
-                    AppColors.iconPrimary,
-                    BlendMode.srcIn,
+            Padding(
+              padding: const EdgeInsets.all(2),
+              child: Container(
+                height: AppSizes.buttonHeight,
+                width: AppSizes.buttonHeight,
+                padding: Insets.allSm,
+                decoration: const BoxDecoration(
+                  color: AppColors.accentPrimary,
+                  shape: BoxShape.circle,
+                ),
+                child: Center(
+                  child: SvgPicture.asset(
+                    AppIcons.calendar,
+                    width: AppSizes.navIconSize,
+                    height: AppSizes.navIconSize,
+                    colorFilter: const ColorFilter.mode(
+                      AppColors.iconPrimary,
+                      BlendMode.srcIn,
+                    ),
                   ),
                 ),
               ),
@@ -913,4 +1039,17 @@ String _formatDate(DateTime date) {
   final mm = date.month.toString().padLeft(2, '0');
   final yyyy = date.year.toString();
   return '$dd.$mm.$yyyy';
+}
+
+class _NoStretchScrollBehavior extends ScrollBehavior {
+  const _NoStretchScrollBehavior();
+
+  @override
+  Widget buildOverscrollIndicator(
+    BuildContext context,
+    Widget child,
+    ScrollableDetails details,
+  ) {
+    return child;
+  }
 }

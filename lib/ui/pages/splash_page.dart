@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:code/constants/app_spacing.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:lottie/lottie.dart';
@@ -94,16 +95,20 @@ class _Loader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: SizedBox(
-        height: AppSizes.splashLoaderSize,
-        width: AppSizes.splashLoaderSize,
-        child: Lottie.asset(
-          AppImages.splashLoaderAnimation,
-          fit: BoxFit.contain,
-          repeat: true,
-          errorBuilder: (_, __, ___) => const Center(
-            child: CircularProgressIndicator(),
+    return Align(
+      alignment: Alignment.bottomCenter,
+      child: Padding(
+        padding: Insets.hLg,
+        child: SizedBox(
+          height: AppSizes.splashLoaderSize,
+          width: AppSizes.splashLoaderSize,
+          child: Lottie.asset(
+            AppImages.splashLoaderAnimation,
+            fit: BoxFit.contain,
+            repeat: true,
+            errorBuilder: (_, __, ___) => const Center(
+              child: CircularProgressIndicator(),
+            ),
           ),
         ),
       ),

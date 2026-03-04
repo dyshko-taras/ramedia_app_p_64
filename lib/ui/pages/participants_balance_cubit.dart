@@ -26,7 +26,12 @@ class ParticipantsBalanceCubit extends Cubit<ParticipantsBalanceState> {
       participants,
       transactions,
     );
-    final debts = _computeDebts(balancesByParticipantId);
+    final debts = _mergeDebts(
+      [
+        ..._computeBalanceDebts(balancesByParticipantId),
+        ..._computeBorrowDebts(transactions),
+      ],
+    );
 
     emit(
       state.copyWith(
@@ -92,7 +97,7 @@ class ParticipantsBalanceCubit extends Cubit<ParticipantsBalanceState> {
     return balances;
   }
 
-  List<Debt> _computeDebts(Map<String, int> balancesByParticipantId) {
+  List<Debt> _computeBalanceDebts(Map<String, int> balancesByParticipantId) {
     final creditors = <_BalanceBucket>[];
     final debtors = <_BalanceBucket>[];
 
@@ -134,6 +139,57 @@ class ParticipantsBalanceCubit extends Cubit<ParticipantsBalanceState> {
       }
     }
 
+    return result;
+  }
+
+  List<Debt> _computeBorrowDebts(List<BudgetTransaction> transactions) {
+    final result = <Debt>[];
+    for (final t in transactions) {
+      if (t.type != TransactionType.expense) continue;
+      final lenderId = t.borrowFromParticipantId;
+      final borrowedMinor = t.borrowedMinor;
+      if (lenderId == null || lenderId.isEmpty) continue;
+      if (borrowedMinor == null || borrowedMinor <= 0) continue;
+
+      result.add(
+        Debt(
+          fromParticipantId: t.participantId,
+          toParticipantId: lenderId,
+          amountMinor: borrowedMinor,
+        ),
+      );
+    }
+    return result;
+  }
+
+  List<Debt> _mergeDebts(List<Debt> debts) {
+    if (debts.isEmpty) return const [];
+
+    final merged = <String, int>{};
+    for (final d in debts) {
+      if (d.amountMinor <= 0) continue;
+      final key = '${d.fromParticipantId}|${d.toParticipantId}';
+      merged.update(
+        key,
+        (v) => v + d.amountMinor,
+        ifAbsent: () => d.amountMinor,
+      );
+    }
+
+    final result = <Debt>[];
+    for (final entry in merged.entries) {
+      final parts = entry.key.split('|');
+      if (parts.length != 2) continue;
+      result.add(
+        Debt(
+          fromParticipantId: parts[0],
+          toParticipantId: parts[1],
+          amountMinor: entry.value,
+        ),
+      );
+    }
+
+    result.sort((a, b) => b.amountMinor.compareTo(a.amountMinor));
     return result;
   }
 }

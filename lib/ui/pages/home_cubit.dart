@@ -107,6 +107,8 @@ class HomeCubit extends Cubit<HomeState> {
     Map<String, int>? splitMinorByParticipantIdOverride,
     String? splitWithParticipantId,
     int? splitPercent,
+    String? borrowFromParticipantId,
+    int? borrowedCents,
   }) async {
     if (amountCents <= 0) return;
 
@@ -131,6 +133,8 @@ class HomeCubit extends Cubit<HomeState> {
       scheduledAt: scheduledAt,
       isSplit: splitMinorByParticipantId != null || isSplit,
       splitMinorByParticipantId: splitMinorByParticipantId,
+      borrowFromParticipantId: borrowFromParticipantId,
+      borrowedMinor: borrowedCents,
     );
 
     await _transactionsRepository.upsert(tx);

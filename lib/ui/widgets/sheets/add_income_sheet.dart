@@ -341,21 +341,25 @@ class _DateField extends StatelessWidget {
                 ),
               ),
             ),
-            Container(
-              height: AppSizes.buttonHeight,
-              width: AppSizes.buttonHeight,
-              decoration: const BoxDecoration(
-                color: AppColors.accentPrimary,
-                shape: BoxShape.circle,
-              ),
-              child: Center(
-                child: SvgPicture.asset(
-                  AppIcons.calendar,
-                  width: AppSizes.navIconSize,
-                  height: AppSizes.navIconSize,
-                  colorFilter: const ColorFilter.mode(
-                    AppColors.iconPrimary,
-                    BlendMode.srcIn,
+            Padding(
+              padding: const EdgeInsets.all(2),
+              child: Container(
+                height: AppSizes.buttonHeight,
+                width: AppSizes.buttonHeight,
+                padding: Insets.allSm,
+                decoration: const BoxDecoration(
+                  color: AppColors.accentPrimary,
+                  shape: BoxShape.circle,
+                ),
+                child: Center(
+                  child: SvgPicture.asset(
+                    AppIcons.calendar,
+                    width: AppSizes.navIconSize,
+                    height: AppSizes.navIconSize,
+                    colorFilter: const ColorFilter.mode(
+                      AppColors.iconPrimary,
+                      BlendMode.srcIn,
+                    ),
                   ),
                 ),
               ),

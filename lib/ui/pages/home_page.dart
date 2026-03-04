@@ -80,7 +80,7 @@ class _HomeView extends StatelessWidget {
                       children: [
                         Row(
                           children: [
-                            const _AvatarPlaceholder(),
+                            _HomeAvatar(photoPath: state.profile?.photoPath),
                             Gaps.wMd,
                             Expanded(
                               child: Column(
@@ -178,6 +178,8 @@ class _HomeView extends StatelessWidget {
           result.splitMinorByParticipantIdOverride,
       splitWithParticipantId: result.splitWithParticipantId,
       splitPercent: result.splitPercent,
+      borrowFromParticipantId: result.borrowFromParticipantId,
+      borrowedCents: result.borrowedCents,
     );
   }
 
@@ -215,6 +217,31 @@ class _AvatarPlaceholder extends StatelessWidget {
             BlendMode.srcIn,
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _HomeAvatar extends StatelessWidget {
+  const _HomeAvatar({required this.photoPath});
+
+  final String? photoPath;
+
+  @override
+  Widget build(BuildContext context) {
+    final file = photoPath == null ? null : File(photoPath!);
+    final imageFile = file == null || !file.existsSync() ? null : file;
+
+    return ClipOval(
+      child: SizedBox(
+        height: AppSizes.onboardingAddRowIconContainerSize,
+        width: AppSizes.onboardingAddRowIconContainerSize,
+        child: imageFile == null
+            ? const _AvatarPlaceholder()
+            : Image.file(
+                imageFile,
+                fit: BoxFit.cover,
+              ),
       ),
     );
   }

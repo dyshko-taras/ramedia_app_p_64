@@ -55,127 +55,132 @@ class _ParticipantsBalanceView extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColors.background2,
       body: SafeArea(
-        child: Padding(
-          padding: Insets.allLg,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
-                children: [
-                  IconButton(
-                    onPressed: () => Navigator.of(context).maybePop(),
-                    icon: SvgPicture.asset(
-                      AppIcons.back,
-                      colorFilter: const ColorFilter.mode(
-                        AppColors.textSecondary,
-                        BlendMode.srcIn,
-                      ),
-                    ),
-                  ),
-                  Expanded(
-                    child: Text(
-                      AppStrings.participantsBalanceTitle,
-                      style: AppTextStyles.header1.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
-              ),
-              Gaps.hLg,
-              AppPrimaryButton(
-                label: AppStrings.participantsBalanceAddParticipant,
-                onPressed: () => _addParticipant(context),
-                backgroundColor: AppColors.accentSecondary,
-                foregroundColor: AppColors.textPrimary,
-              ),
-              Gaps.hLg,
-              Expanded(
-                child:
-                    BlocBuilder<
-                      ParticipantsBalanceCubit,
-                      ParticipantsBalanceState
-                    >(
-                      builder: (context, state) {
-                        if (state.isLoading) {
-                          return const Center(
-                            child: SizedBox(
-                              height: AppSizes.loadingIndicatorSize,
-                              width: AppSizes.loadingIndicatorSize,
-                              child: CircularProgressIndicator(
-                                strokeWidth:
-                                    AppSizes.loadingIndicatorStrokeWidth,
-                                color: AppColors.textPrimary,
+        child: BlocBuilder<ParticipantsBalanceCubit, ParticipantsBalanceState>(
+          builder: (context, state) {
+            final participantById = {
+              for (final p in state.participants) p.id: p,
+            };
+
+            return Column(
+              children: [
+                Padding(
+                  padding: Insets.allLg,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Row(
+                        children: [
+                          IconButton(
+                            onPressed: () => Navigator.of(context).maybePop(),
+                            icon: SvgPicture.asset(
+                              AppIcons.back,
+                              colorFilter: const ColorFilter.mode(
+                                AppColors.textSecondary,
+                                BlendMode.srcIn,
                               ),
                             ),
-                          );
-                        }
-
-                        final participantById = {
-                          for (final p in state.participants) p.id: p,
-                        };
-
-                        return CustomScrollView(
-                          slivers: [
-                            SliverList(
-                              delegate: SliverChildBuilderDelegate(
-                                (context, index) {
-                                  final p = state.participants[index];
-                                  final balance =
-                                      state.balancesByParticipantId[p.id] ?? 0;
-                                  return _ParticipantRow(
-                                    participant: p,
-                                    amountText: _formatMoney(balance),
+                          ),
+                          Expanded(
+                            child: Text(
+                              AppStrings.participantsBalanceTitle,
+                              style: AppTextStyles.body2.copyWith(
+                                color: AppColors.textSecondary,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (state.isLoading) ...[
+                        Gaps.hXl,
+                        const Center(
+                          child: SizedBox(
+                            height: AppSizes.loadingIndicatorSize,
+                            width: AppSizes.loadingIndicatorSize,
+                            child: CircularProgressIndicator(
+                              strokeWidth: AppSizes.loadingIndicatorStrokeWidth,
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
+                        ),
+                        Gaps.hXl,
+                      ] else ...[
+                        if (state.participants.isEmpty) ...[
+                          Gaps.hLg,
+                          AppPrimaryButton(
+                            label: AppStrings.participantsBalanceAddParticipant,
+                            onPressed: () => _addParticipant(context),
+                            backgroundColor: AppColors.accentSecondary,
+                            foregroundColor: AppColors.textPrimary,
+                          ),
+                        ] else ...[
+                          for (final p in state.participants) ...[
+                            _ParticipantRow(
+                              participant: p,
+                              amountText: _formatMoney(
+                                (state.balancesByParticipantId[p.id] ?? 0) < 0
+                                    ? 0
+                                    : (state.balancesByParticipantId[p.id] ??
+                                          0),
+                              ),
+                            ),
+                            Gaps.hSm,
+                          ],
+                        ],
+                      ],
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: ColoredBox(
+                    color: AppColors.background1,
+                    child: Padding(
+                      padding: Insets.vLg,
+                      child: state.isLoading
+                          ? const SizedBox.shrink()
+                          : state.debts.isEmpty
+                          ? Center(
+                              child: Text(
+                                AppStrings.participantsBalanceEmptyState,
+                                style: AppTextStyles.body3.copyWith(
+                                  color: AppColors.textGray,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            )
+                          : RefreshIndicator(
+                              onRefresh: context
+                                  .read<ParticipantsBalanceCubit>()
+                                  .load,
+                              child: ListView.separated(
+                                physics: const AlwaysScrollableScrollPhysics(),
+                                padding: EdgeInsets.zero,
+                                itemCount: state.debts.length,
+                                separatorBuilder: (_, __) => Gaps.hXs,
+                                itemBuilder: (context, index) {
+                                  final debt = state.debts[index];
+                                  final from =
+                                      participantById[debt.fromParticipantId];
+                                  final to =
+                                      participantById[debt.toParticipantId];
+                                  if (from == null || to == null) {
+                                    return const SizedBox.shrink();
+                                  }
+                                  return _DebtCard(
+                                    from: from,
+                                    to: to,
+                                    amountText: _formatMoney(debt.amountMinor),
                                   );
                                 },
-                                childCount: state.participants.length,
                               ),
                             ),
-                            if (state.debts.isEmpty)
-                              SliverFillRemaining(
-                                hasScrollBody: false,
-                                child: Center(
-                                  child: Text(
-                                    AppStrings.participantsBalanceEmptyState,
-                                    style: AppTextStyles.body3.copyWith(
-                                      color: AppColors.textGray,
-                                    ),
-                                    textAlign: TextAlign.center,
-                                  ),
-                                ),
-                              )
-                            else
-                              SliverList(
-                                delegate: SliverChildBuilderDelegate(
-                                  (context, index) {
-                                    final debt = state.debts[index];
-                                    final from =
-                                        participantById[debt.fromParticipantId];
-                                    final to =
-                                        participantById[debt.toParticipantId];
-                                    if (from == null || to == null) {
-                                      return const SizedBox.shrink();
-                                    }
-                                    return _DebtCard(
-                                      from: from,
-                                      to: to,
-                                      amountText: _formatMoney(
-                                        debt.amountMinor,
-                                      ),
-                                    );
-                                  },
-                                  childCount: state.debts.length,
-                                ),
-                              ),
-                          ],
-                        );
-                      },
                     ),
-              ),
-            ],
-          ),
+                  ),
+                ),
+              ],
+            );
+          },
         ),
       ),
     );
@@ -194,7 +199,7 @@ class _ParticipantRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: Insets.vSm,
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
       child: Row(
         children: [
           _ParticipantAvatar(participant: participant),
@@ -275,55 +280,54 @@ class _DebtCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: Insets.vSm,
-      child: DecoratedBox(
-        decoration: const BoxDecoration(
-          color: AppColors.layerPrimary,
-          borderRadius: AppRadius.md,
-        ),
-        child: Padding(
-          padding: Insets.allLg,
-          child: Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      from.name,
-                      style: AppTextStyles.body3.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        color: AppColors.layerPrimary,
+        borderRadius: AppRadius.lg,
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+        child: Row(
+          children: [
+            Gaps.wMd,
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    from.name,
+                    style: AppTextStyles.body3.copyWith(
+                      color: AppColors.textSecondary,
                     ),
-                    Text(
-                      AppStrings.participantsBalanceOwes,
-                      style: AppTextStyles.body3.copyWith(
-                        color: AppColors.textGray,
-                      ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Text(
+                    AppStrings.participantsBalanceOwes,
+                    style: AppTextStyles.body3.copyWith(
+                      color: AppColors.textGray,
                     ),
-                    Text(
-                      to.name,
-                      style: AppTextStyles.body3.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                  ),
+                  Text(
+                    to.name,
+                    style: AppTextStyles.body3.copyWith(
+                      color: AppColors.textSecondary,
                     ),
-                  ],
-                ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
               ),
-              Gaps.wMd,
-              Text(
-                amountText,
-                style: AppTextStyles.body1.copyWith(
-                  color: AppColors.layerError,
-                ),
+            ),
+            Gaps.wMd,
+            Text(
+              amountText,
+              style: AppTextStyles.body1.copyWith(
+                color: AppColors.layerError,
               ),
-            ],
-          ),
+            ),
+            Gaps.wMd,
+          ],
         ),
       ),
     );
